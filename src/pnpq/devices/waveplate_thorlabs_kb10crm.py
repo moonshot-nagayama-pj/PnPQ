@@ -146,6 +146,8 @@ class Waveplate:
         if not self.conn.is_open:
             raise Exception("Move forward failed: can not connect to Thorlabs ODL device")
 
+        MAX_STEPS = self.resolution
+
         if steps > MAX_STEPS:
             raise Exception("required steps are more that the device resolution: " + str(self.resolution))
 
