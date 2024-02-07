@@ -3,6 +3,7 @@
 #       OSW12-1310E & OSW22-1310E
 #
 import serial
+import time
 from serial import Serial
 from serial.tools import list_ports
 
@@ -20,6 +21,7 @@ class Switch:
         self.conn.port = self.port
         self.device_sn = serial_number
         self.conf = config_file
+        self.timeout = 4
 
         find_Port = False
         if self.device_sn is not None:
@@ -64,8 +66,34 @@ class Switch:
         else:
             raise Exception("Switch is not connected!")
 
-    #def othermethod(self):
-    #     if self.conn.is_open:
-    #        self.conn.write()
-    #    else:
-    #        raise Exception("Switch is not connected!")
+    def get_state(self):
+        if self.conn.is_open:
+            try:
+                self.conn.write(b'S ?\x0A')
+                state = self.waitForSwReply(self.timeout)
+
+                if not state:
+                    raise Warning("Can not receive any response from SW")
+
+            except Exception as e:
+                raise Exception("Failed to get SW state: " + str(e))
+        else:
+            raise Exception("Switch is not connected!")
+
+    def waitForSwReply(self, timeout):
+        retries = timeout
+        result = ''
+        readPhase = True
+        while readPhase and retries > 0:
+            #while True:
+            noReadBytes = self.conn.in_waiting
+
+            result += self.conn.read(noReadBytes)
+
+            if (noReadBytes > 0):
+                readPhase = False
+                print("FInd Reply:" + str(result))
+                return result
+            time.sleep(1)
+            retries -= 1
+
