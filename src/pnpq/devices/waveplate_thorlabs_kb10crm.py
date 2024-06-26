@@ -1,4 +1,5 @@
 import time, logging
+import asyncio
 from serial import Serial
 
 from pnpq.errors import (
@@ -95,6 +96,24 @@ class Waveplate:
             f"Invalid degree specified: {degree}. must be in a range [0,360]"
         )
 
+    async def __async_wait_for_reply(
+        self, sequence: bytes, num_retries: int
+    ) -> bytes | None:
+        start_time = time.time()
+        # retries = num_retries
+        while time.time() - start_time < num_retries:
+            num_read_bytes = self.conn.in_waiting
+            result = await self.conn.read(num_read_bytes)
+            self.logger.debug(
+                f"try to find sequence: {sequence}, result: {result}, retry count: {retries}"
+            )
+
+            if num_read_bytes > 0 and result.find(sequence) != -1:
+                self.logger.debug(f"The sequence found")
+                return result
+
+        self.logger.warn(f"Can not received expected response from device")
+
     def __wait_for_reply(self, sequence: bytes, num_retries: int) -> bytes | None:
         retries = num_retries
         result: bytes = b""
@@ -123,6 +142,26 @@ class Waveplate:
         self.logger.info("call identify cmd")
         self.__ensure_port_open()
         self.conn.write(IDENTIFY_COMMAND)
+
+    async def __async_home(self) -> bytes | None:
+        self.logger.info("call home cmd")
+        self.__ensure_port_open()
+
+        self.conn.write(HOME_REQ_COMMAND)
+
+        await asyncio.sleep(0.5)
+
+        self.conn.write(HOME_SET_COMMAND)
+        await asyncio.sleep(0.5)
+
+        self.conn.write(HOME_MOVE_COMMAND)
+        await asyncio.sleep(0.5)
+
+        result = self.__wait_for_reply(b"\x44\x04", 20)
+        self.logger.debug(f"home result: {result}")
+        if result is None:
+            self.logger.warn("home command is not completed")
+        return result
 
     def home(self) -> bytes | None:
         self.logger.info("call home cmd")
@@ -245,6 +284,21 @@ class Waveplate:
             self.logger.info(f"getpos extracted result: pos:{position} steps:{steps}")
             return steps
 
+    async def __async_rotator(self, degree: int | float) -> bytes | None:
+        self.logger.info(f"call async rotate cmd: degree={degree}")
+        # Absolute Rotation
+        self.__ensure_port_open()
+        self.__ensure_valid_degree(degree)
+
+        msg = ROTATE_COMMAND + (int(degree * self.resolution)).to_bytes(
+            4, byteorder="little"
+        )
+        self.conn.write(msg)
+
+        result = self.__async_wait_for_reply(b"\x64\x04", self.rotate_timeout)
+
+        # result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
+
     def rotate(self, degree: int | float) -> bytes | None:
         self.logger.info(f"call rotate cmd: degree={degree}")
         # Absolute Rotation
@@ -326,6 +380,7 @@ class Waveplate:
         return result
 
     def custom_home(self, degree):
+        """Customized home (home+offset)"""
         self.logger.info(f"call custom_home cmd: degree={degree}")
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
