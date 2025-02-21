@@ -5,69 +5,79 @@ from pnpq.units import pnpq_ureg
 
 
 @pytest.mark.parametrize(
-    "test_mpc320_step, expected_angle",
+    "test_mpc320_step, expected_angle, output_units",
     [
-        (-1370, -170),
-        (0, 0),
-        (1370, 170),
+        (-1370, -170, "degree"),
+        (0, 0, "degree"),
+        (1370, 170, "degree"),
+        (1370, 2.96706, "radians"),
     ],
 )
 def test_mpc320_step_to_angle_conversion(
-    test_mpc320_step: float, expected_angle: float
+    test_mpc320_step: float, expected_angle: float, output_units: str
 ) -> None:
 
-    angle = (test_mpc320_step * pnpq_ureg.mpc320_step).to("degrees").magnitude
+    angle = (test_mpc320_step * pnpq_ureg.mpc320_step).to(output_units).magnitude
     assert angle == pytest.approx(expected_angle)
 
 
 @pytest.mark.parametrize(
     "test_angle, expected_mpc320_step",
     [
-        (-170, -1370),
-        (0, 0),
-        (170, 1370),
-        (169, 1362),  # This will be able to test the actual rounding
+        (-170 * pnpq_ureg.degree, -1370),
+        (0 * pnpq_ureg.degree, 0),
+        (170 * pnpq_ureg.degree, 1370),
+        (169 * pnpq_ureg.degree, 1362),  # This will be able to test the actual rounding
+        (90 * pnpq_ureg.degree, 725),
+        (1.570796 * pnpq_ureg.radian, 725),
+        (100 * pnpq_ureg.mpc320_step, 100),
     ],
 )
 def test_angle_to_mpc320_step_conversion(
-    test_angle: float, expected_mpc320_step: int
+    test_angle: Quantity, expected_mpc320_step: int
 ) -> None:
 
-    mpc320_step = (test_angle * pnpq_ureg.degree).to("mpc320_step").magnitude
+    mpc320_step = test_angle.to("mpc320_step").magnitude
     assert mpc320_step == expected_mpc320_step
     assert isinstance(mpc320_step, int)
 
 
 @pytest.mark.parametrize(
-    "test_k10cr1_step, expected_angle",
+    "test_k10cr1_step, expected_angle, output_units",
     [
-        (-136533, -1),
-        (0, 0),
-        (136533, 1),
+        (-136533, -1, "degree"),
+        (0, 0, "degree"),
+        (136533, 1, "degree"),
+        (136533, 0.0174533, "radians"),
     ],
 )
 def test_k10cr1_step_to_angle_conversion(
-    test_k10cr1_step: float, expected_angle: float
+    test_k10cr1_step: Quantity, expected_angle: float, output_units: str
 ) -> None:
 
-    angle = (test_k10cr1_step * pnpq_ureg.k10cr1_step).to("degrees").magnitude
+    angle = (test_k10cr1_step * pnpq_ureg.k10cr1_step).to(output_units).magnitude
     assert angle == pytest.approx(expected_angle)
 
 
 @pytest.mark.parametrize(
     "test_angle, expected_k10cr1_step",
     [
-        (-1, -136533),
-        (0, 0),
-        (1, 136533),
-        (1.000001, 136533),  # This will be able to test the actual rounding
+        (-1 * pnpq_ureg.degree, -136533),
+        (0 * pnpq_ureg.degree, 0),
+        (1 * pnpq_ureg.degree, 136533),
+        (
+            1.000001 * pnpq_ureg.degree,
+            136533,
+        ),  # This will be able to test the actual rounding
+        (0.0174533 * pnpq_ureg.radian, 136533),
+        (100 * pnpq_ureg.k10cr1_step, 100),
     ],
 )
 def test_angle_to_k10cr1_step_conversion(
-    test_angle: float, expected_k10cr1_step: int
+    test_angle: Quantity, expected_k10cr1_step: int
 ) -> None:
 
-    k10cr1_step = (test_angle * pnpq_ureg.degree).to("k10cr1_step").magnitude
+    k10cr1_step = (test_angle).to("k10cr1_step").magnitude
     assert k10cr1_step == expected_k10cr1_step
     assert isinstance(k10cr1_step, int)
 
