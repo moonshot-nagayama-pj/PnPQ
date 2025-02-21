@@ -17,7 +17,9 @@ pnpq_ureg.define("k10cr1_step = [dimension_k10cr1_step]")
 def degree_to_mpc320_steps(
     ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
 ) -> PlainQuantity[Any]:
-    return Quantity(round(value.magnitude * 1370 / 170), ureg.mpc320_step)
+    return Quantity(
+        round((value.to("degree")).magnitude * 1370 / 170), ureg.mpc320_step
+    )
 
 
 def mpc320_steps_to_degree(
@@ -30,7 +32,7 @@ def mpc320_steps_to_degree(
 def degree_to_k10cr1_steps(
     ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
 ) -> PlainQuantity[Any]:
-    return Quantity(round(value.magnitude * 136533 / 1), ureg.k10cr1_step)
+    return Quantity(round(value.to("degree").magnitude * 136533 / 1), ureg.k10cr1_step)
 
 
 def k10cr1_steps_to_degree(
@@ -51,6 +53,10 @@ thorlabs_context.add_transformation("k10cr1_step", "degree", k10cr1_steps_to_deg
 # A transformation function (defined below) will convert other units, like degrees per second, into this proportional form.
 pnpq_ureg.define("mpc320_velocity = [dimension_mpc320_velocity]")
 
+# According to the protocol (p.41), it states that we should convert 1 degree/sec to 7329109 steps/sec for K10CR1.
+# and 1 degree/sec^2 to 1502 steps/sec^2 for acceleration
+pnpq_ureg.define("k10cr1_velocity = [dimension_k10cr1_velocity]")
+pnpq_ureg.define("k10cr1_acceleration = [dimension_k10cr1_acceleration]")
 
 mpc320_max_velocity: Quantity = cast(
     Quantity, 400 * (pnpq_ureg.degree / pnpq_ureg.second)
@@ -139,6 +145,7 @@ thorlabs_context.add_transformation(
     "mpc320_velocity",
     mpc320_step_velocity_to_mpc320_velocity,
 )
+
 
 # Add and enable the context
 pnpq_ureg.add_context(thorlabs_context)
