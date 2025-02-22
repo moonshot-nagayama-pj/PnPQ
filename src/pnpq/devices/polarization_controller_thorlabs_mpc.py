@@ -1,9 +1,8 @@
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import TypedDict, cast
+from typing import cast
 
-import structlog
 from pint import Quantity
 
 from ..apt.connection import AptConnection
@@ -27,33 +26,19 @@ from ..apt.protocol import (
     JogDirection,
 )
 from ..units import pnpq_ureg
-
-
-class PolarizationControllerParams(TypedDict):
-    #: Dimensionality must be ([angle] / [time]) or mpc320_velocity
-    velocity: Quantity
-    #: Dimensionality must be [angle] or mpc320_step
-    home_position: Quantity
-    #: Dimensionality must be [angle] or mpc320_step
-    jog_step_1: Quantity
-    #: Dimensionality must be [angle] or mpc320_step
-    jog_step_2: Quantity
-    #: Dimensionality must be [angle] or mpc320_step
-    jog_step_3: Quantity
+from .polarization_controller_base import (
+    PolarizationControllerBase,
+    PolarizationControllerParams,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
-class PolarizationControllerThorlabsMPC:
+class PolarizationControllerThorlabsMPC(PolarizationControllerBase):
     connection: AptConnection
-
-    log = structlog.get_logger()
 
     # Polling threads
     tx_poller_thread: threading.Thread = field(init=False)
     tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
-
-    # Setup channels for the device
-    available_channels: frozenset[ChanIdent] = frozenset([])
 
     def __post_init__(self) -> None:
         # Start polling thread
@@ -103,13 +88,6 @@ class PolarizationControllerThorlabsMPC:
                     # should decrease this interval.
                     self.connection.tx_ordered_sender_awaiting_reply.wait(1)
 
-    def get_status_all(self) -> tuple[AptMessage_MGMSG_MOT_GET_USTATUSUPDATE, ...]:
-        all_status = []
-        for channel in self.available_channels:
-            status = self.get_status(channel)
-            all_status.append(status)
-        return tuple(all_status)
-
     def get_status(
         self, chan_ident: ChanIdent
     ) -> AptMessage_MGMSG_MOT_GET_USTATUSUPDATE:
@@ -158,18 +136,6 @@ class PolarizationControllerThorlabsMPC:
         )
 
     def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
-        """Jogs the device forward or backwards in small steps.
-        Experimentally, jog steps of 50 or greater seem to work the
-        best.
-
-        The specific number of steps per jog can be set via the
-        :py:func:`set_params` function.
-
-        :param chan_ident: The motor channel to jog.
-        :param jog_direction: The direction the paddle should move in.
-
-        """
-
         self.set_channel_enabled(chan_ident, True)
         self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_JOG(
