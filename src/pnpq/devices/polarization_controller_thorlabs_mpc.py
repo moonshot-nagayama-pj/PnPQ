@@ -1,5 +1,6 @@
 import threading
 import time
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TypedDict, cast
 
@@ -42,15 +43,72 @@ class PolarizationControllerParams(TypedDict):
     jog_step_3: Quantity
 
 
-@dataclass(frozen=True, kw_only=True)
-class PolarizationControllerThorlabsMPC:
-    connection: AptConnection
+class AbstractPolarizationControllerThorlabsMPC(ABC):
+    @abstractmethod
+    def get_status_all(self) -> tuple[AptMessage_MGMSG_MOT_GET_USTATUSUPDATE, ...]:
+        pass
 
-    log = structlog.get_logger()
+    @abstractmethod
+    def get_status(
+        self, chan_ident: ChanIdent
+    ) -> AptMessage_MGMSG_MOT_GET_USTATUSUPDATE:
+        pass
+
+    @abstractmethod
+    def home(self, chan_ident: ChanIdent) -> None:
+        pass
+
+    @abstractmethod
+    def identify(self, chan_ident: ChanIdent) -> None:
+        pass
+
+    @abstractmethod
+    def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
+        """Jogs the device forward or backwards in small steps.
+        Experimentally, jog steps of 50 or greater seem to work the
+        best.
+
+        The specific number of steps per jog can be set via the
+        :py:func:`set_params` function.
+
+        :param chan_ident: The motor channel to jog.
+        :param jog_direction: The direction the paddle should move in.
+
+        """
+
+    @abstractmethod
+    def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
+        pass
+
+    @abstractmethod
+    def get_params(self) -> PolarizationControllerParams:
+        pass
+
+    @abstractmethod
+    def set_channel_enabled(self, chan_ident: ChanIdent, enabled: bool) -> None:
+        pass
+
+    @abstractmethod
+    def set_params(
+        self,
+        velocity: None | Quantity = None,
+        home_position: None | Quantity = None,
+        jog_step_1: None | Quantity = None,
+        jog_step_2: None | Quantity = None,
+        jog_step_3: None | Quantity = None,
+    ) -> None:
+        pass
+
+
+@dataclass(frozen=True, kw_only=True)
+class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMPC):
+    connection: AptConnection
 
     # Polling threads
     tx_poller_thread: threading.Thread = field(init=False)
     tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
+
+    log = structlog.get_logger()
 
     # Setup channels for the device
     available_channels: frozenset[ChanIdent] = frozenset([])
@@ -158,18 +216,6 @@ class PolarizationControllerThorlabsMPC:
         )
 
     def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
-        """Jogs the device forward or backwards in small steps.
-        Experimentally, jog steps of 50 or greater seem to work the
-        best.
-
-        The specific number of steps per jog can be set via the
-        :py:func:`set_params` function.
-
-        :param chan_ident: The motor channel to jog.
-        :param jog_direction: The direction the paddle should move in.
-
-        """
-
         self.set_channel_enabled(chan_ident, True)
         self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_JOG(
