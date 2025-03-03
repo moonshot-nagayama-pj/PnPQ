@@ -200,8 +200,8 @@ thorlabs_context.add_transformation(
     "mpc320_velocity",
     "mpc320_step / second",
     angle_to_thorlabs_quantity(
-        input_to_output=lambda step: step / 170 * 1370,
-        input_unit=cast(Unit, pnpq_ureg("degree / second")), # Convert input to degree / second and use previously defined function
+        input_to_output=lambda step: ( (step / 170 * 1370) * pnpq_ureg("degree / second") ),
+        input_unit=cast(Unit, pnpq_ureg("mpc320_velocity")),
         output_unit=cast(Unit, pnpq_ureg("mpc320_step / second")),
         output_range=None,
         output_rounded=False,
@@ -211,7 +211,13 @@ thorlabs_context.add_transformation(
 thorlabs_context.add_transformation(
     "mpc320_step / second",
     "mpc320_velocity",
-    mpc320_step_velocity_to_mpc320_velocity,
+    angle_to_thorlabs_quantity(
+        input_to_output=lambda step: (step * pnpq_ureg("mpc320_step / second")).to("degree / second").magnitude * 170 / 1370,
+        input_unit=cast(Unit, pnpq_ureg("mpc320_step / second")),
+        output_unit=cast(Unit, pnpq_ureg("mpc320_velocity")),
+        output_range=None,
+        output_rounded=False,
+    ),
 )
 
 # Add and enable the context
