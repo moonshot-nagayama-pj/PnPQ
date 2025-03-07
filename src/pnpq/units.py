@@ -9,6 +9,7 @@ pnpq_ureg = pint.UnitRegistry()
 
 thorlabs_context = pint.Context("thorlabs_context")
 
+
 def get_unit_transformation(
     input_to_output: Callable[[float], float],
     input_unit: pint.Unit,
@@ -38,6 +39,7 @@ def get_unit_transformation(
         return converted_quantity
 
     return to_quantity
+
 
 # Custom unit definitions for devices
 pnpq_ureg.define("mpc320_step = [dimension_mpc320_step]")
@@ -119,8 +121,6 @@ thorlabs_context.add_transformation(
         input_to_output=lambda steps: steps / 100 * 400,
         input_unit=cast(Unit, pnpq_ureg("mpc320_velocity")),
         output_unit=cast(Unit, pnpq_ureg("degree / second")),
-        output_range=None,
-        output_rounded=False,
     ),
 )
 
@@ -133,9 +133,7 @@ thorlabs_context.add_transformation(
         input_unit=cast(Unit, pnpq_ureg("degree / second")),
         output_unit=cast(
             Unit, pnpq_ureg("mpc320_step / second")
-        ),  # Already rounded because casted into mpc320_step
-        output_range=None,
-        output_rounded=False,
+        ),  # Already rounded because using degrees / second -> mpc320_velocity conversion
     ),
 )
 
@@ -151,8 +149,6 @@ thorlabs_context.add_transformation(
         .magnitude,
         input_unit=cast(Unit, pnpq_ureg("mpc320_step / second")),
         output_unit=cast(Unit, pnpq_ureg("mpc320_velocity")),
-        output_range=None,
-        output_rounded=False,
     ),
 )
 
