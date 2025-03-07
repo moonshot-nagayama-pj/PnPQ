@@ -45,6 +45,21 @@ def get_unit_transformation(
 pnpq_ureg.define("mpc320_step = [dimension_mpc320_step]")
 pnpq_ureg.define("k10cr1_step = [dimension_k10cr1_step]")
 
+# According to the protocol, velocity is expressed as a percentage of the maximum speed, ranging from 10% to 100%.
+# The maximum velocity is defined as 400 degrees per second, so we store velocity as a dimensionless proportion of this value.
+# Thus, the unit for mpc_velocity will be set as dimensionless.
+# A transformation function (defined below) will convert other units, like degrees per second, into this proportional form.
+pnpq_ureg.define("mpc320_velocity = [dimension_mpc320_velocity]")
+
+mpc320_max_velocity: Quantity = cast(
+    Quantity, 400 * (pnpq_ureg.degree / pnpq_ureg.second)
+)
+
+# According to the protocol (p.41), it states that we should convert 1 degree/sec to 7329109 steps/sec for K10CR1.
+# and 1 degree/sec^2 to 1502 steps/sec^2 for acceleration
+pnpq_ureg.define("k10cr1_velocity = [dimension_k10cr1_velocity]")
+pnpq_ureg.define("k10cr1_acceleration = [dimension_k10cr1_acceleration]")
+
 thorlabs_context.add_transformation(
     "degree",
     "mpc320_step",
@@ -90,17 +105,6 @@ thorlabs_context.add_transformation(
     ),
 )
 
-# According to the protocol, velocity is expressed as a percentage of the maximum speed, ranging from 10% to 100%.
-# The maximum velocity is defined as 400 degrees per second, so we store velocity as a dimensionless proportion of this value.
-# Thus, the unit for mpc_velocity will be set as dimensionless.
-# A transformation function (defined below) will convert other units, like degrees per second, into this proportional form.
-pnpq_ureg.define("mpc320_velocity = [dimension_mpc320_velocity]")
-
-mpc320_max_velocity: Quantity = cast(
-    Quantity, 400 * (pnpq_ureg.degree / pnpq_ureg.second)
-)
-
-
 thorlabs_context.add_transformation(
     "degree / second",
     "mpc320_velocity",
@@ -124,7 +128,6 @@ thorlabs_context.add_transformation(
     ),
 )
 
-
 thorlabs_context.add_transformation(
     "mpc320_velocity",
     "mpc320_step / second",
@@ -136,7 +139,6 @@ thorlabs_context.add_transformation(
         ),  # Already rounded because using degrees / second -> mpc320_velocity conversion
     ),
 )
-
 
 thorlabs_context.add_transformation(
     "mpc320_step / second",
