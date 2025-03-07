@@ -137,5 +137,8 @@ def test_from_mpc320_velocity_conversion(
     ],
 )
 def test_to_mpc320_velocity_out_of_bounds(velocity: Quantity) -> None:
-    with pytest.raises(ValueError, match="Rounded mpc320_velocity .* is out of range"):
+    with pytest.raises(
+        ValueError,
+        match="Rounded mpc320_velocity [0-9]+ is out of range \\(10, 100\\)\\.",
+    ):
         velocity.to(pnpq_ureg.mpc320_velocity)
