@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import cast
 
 import structlog
 from pint import Quantity
@@ -45,11 +46,11 @@ class PolarizationControllerThorlabsMPC320Stub(
             self,
             "current_params",
             {
-                "velocity": 3 * pnpq_ureg.degree / pnpq_ureg.second,
-                "home_position": 0 * pnpq_ureg.degree,
-                "jog_step_1": 5 * pnpq_ureg.degree,
-                "jog_step_2": 5 * pnpq_ureg.degree,
-                "jog_step_3": 5 * pnpq_ureg.degree,
+                "velocity": 20 * pnpq_ureg.mpc320_velocity,
+                "home_position": 0 * pnpq_ureg.mpc320_steps,
+                "jog_step_1": 10 * pnpq_ureg.mpc320_steps,
+                "jog_step_2": 10 * pnpq_ureg.mpc320_steps,
+                "jog_step_3": 10 * pnpq_ureg.mpc320_steps,
             },
         )
 
@@ -57,9 +58,9 @@ class PolarizationControllerThorlabsMPC320Stub(
             self,
             "current_state",
             {
-                ChanIdent.CHANNEL_1: 0 * pnpq_ureg.degree,
-                ChanIdent.CHANNEL_2: 0 * pnpq_ureg.degree,
-                ChanIdent.CHANNEL_3: 0 * pnpq_ureg.degree,
+                ChanIdent.CHANNEL_1: 0 * pnpq_ureg.mpc320_steps,
+                ChanIdent.CHANNEL_2: 0 * pnpq_ureg.mpc320_steps,
+                ChanIdent.CHANNEL_3: 0 * pnpq_ureg.mpc320_steps,
             },
         )
 
@@ -123,7 +124,8 @@ class PolarizationControllerThorlabsMPC320Stub(
                 f"Absolute position must be between 0 and 170 degrees (or equivalent). Value given was {absolute_degree} degrees."
             )
 
-        self.current_state[chan_ident] = position
+        position_in_steps = position.to("mpc320_steps")
+        self.current_state[chan_ident] = cast(Quantity, position_in_steps)
 
         self.log.info(f"[MPC Stub] Channel {chan_ident} move to {position}")
 
@@ -143,14 +145,24 @@ class PolarizationControllerThorlabsMPC320Stub(
         jog_step_3: None | Quantity = None,
     ) -> None:
         if velocity is not None:
-            self.current_params["velocity"] = velocity
+            self.current_params["velocity"] = cast(
+                Quantity, velocity.to("mpc320_velocity")
+            )
         if home_position is not None:
-            self.current_params["home_position"] = home_position
+            self.current_params["home_position"] = cast(
+                Quantity, home_position.to("mpc320_steps")
+            )
         if jog_step_1 is not None:
-            self.current_params["jog_step_1"] = jog_step_1
+            self.current_params["jog_step_1"] = cast(
+                Quantity, jog_step_1.to("mpc320_steps")
+            )
         if jog_step_2 is not None:
-            self.current_params["jog_step_2"] = jog_step_2
+            self.current_params["jog_step_2"] = cast(
+                Quantity, jog_step_2.to("mpc320_steps")
+            )
         if jog_step_3 is not None:
-            self.current_params["jog_step_3"] = jog_step_3
+            self.current_params["jog_step_3"] = cast(
+                Quantity, jog_step_3.to("mpc320_steps")
+            )
 
         self.log.info(f"[MPC Stub] Updated parameters: {self.current_params}")
