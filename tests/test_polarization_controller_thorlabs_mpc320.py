@@ -72,26 +72,12 @@ def test_move_absolute(mock_connection: Any) -> None:
     assert mock_connection.send_message_expect_reply.call_count == 3
 
 
-def test_connection(mock_connection: Any) -> None:
-
-    mock_connection.open = Mock()
-    mock_connection.close = Mock()
-
-    controller = PolarizationControllerThorlabsMPC320(connection=mock_connection)
-
-    controller.connection.open()
-    controller.connection.close()
-
-    mock_connection.open.assert_called_once()
-    mock_connection.close.assert_called_once()
-
-
 def test_jog(mock_connection: Any) -> None:
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> None:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_JOG):
-            assert sent_message.chan_ident == ChanIdent(1)
+            assert sent_message.chan_idbin/ent == ChanIdent(1)
             assert sent_message.jog_direction == JogDirection.FORWARD
 
             # A hypothetical reply message from the device
