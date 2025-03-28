@@ -77,7 +77,7 @@ def test_jog(mock_connection: Any) -> None:
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> None:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_JOG):
-            assert sent_message.chan_idbin/ent == ChanIdent(1)
+            assert sent_message.chan_ident == ChanIdent(1)
             assert sent_message.jog_direction == JogDirection.FORWARD
 
             # A hypothetical reply message from the device
