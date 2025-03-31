@@ -77,7 +77,7 @@ def test_jog(mock_connection: Any) -> None:
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> None:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_JOG):
-            assert sent_message.chan_idbin/ent == ChanIdent(1)
+            assert sent_message.chan_ident == ChanIdent(1)
             assert sent_message.jog_direction == JogDirection.FORWARD
 
             # A hypothetical reply message from the device
@@ -143,11 +143,14 @@ def test_get_params(mock_connection: Any) -> None:
 
     params: PolarizationControllerParams = controller.get_params()
 
-    assert params["velocity"] == 1 * pnpq_ureg.mpc320_velocity
-    assert params["home_position"] == 2 * pnpq_ureg.mpc320_step
-    assert params["jog_step_1"] == 3 * pnpq_ureg.mpc320_step
-    assert params["jog_step_2"] == 4 * pnpq_ureg.mpc320_step
-    assert params["jog_step_3"] == 5 * pnpq_ureg.mpc320_step
+    assert params == {
+        "velocity": 1 * pnpq_ureg.mpc320_velocity,
+        "home_position": 2 * pnpq_ureg.mpc320_step,
+        "jog_step_1": 3 * pnpq_ureg.mpc320_step,
+        "jog_step_2": 4 * pnpq_ureg.mpc320_step,
+        "jog_step_3": 5 * pnpq_ureg.mpc320_step,
+    }
+
     assert mock_connection.send_message_expect_reply.call_count == 1
 
 
@@ -206,23 +209,24 @@ def test_set_params(mock_connection: Any) -> None:
 
 
 def test_get_status(mock_connection: Any) -> None:
+
+    # A hypothetical reply message from the device
+    reply_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
+        chan_ident=ChanIdent(1),
+        position=10,
+        velocity=0,
+        motor_current=0 * pnpq_ureg.milliamp,
+        status=UStatus.from_bits(UStatusBits.ACTIVE),
+        destination=Address.HOST_CONTROLLER,
+        source=Address.GENERIC_USB,
+    )
+
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage:
+
         assert isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
         assert sent_message.chan_ident == ChanIdent(1)
-
-        # A hypothetical reply message from the device
-        reply_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
-            chan_ident=sent_message.chan_ident,
-            position=10,
-            velocity=0,
-            motor_current=0 * pnpq_ureg.milliamp,
-            status=UStatus.from_bits(UStatusBits.ACTIVE),
-            destination=Address.HOST_CONTROLLER,
-            source=Address.GENERIC_USB,
-        )
-
         assert match_reply_callback(reply_message)
 
         return reply_message
@@ -233,7 +237,8 @@ def test_get_status(mock_connection: Any) -> None:
 
     controller = PolarizationControllerThorlabsMPC320(connection=mock_connection)
 
-    status: AptMessage = controller.get_status(ChanIdent(1))
+    status: AptMessage_MGMSG_MOT_GET_USTATUSUPDATE = controller.get_status(ChanIdent(1))
 
-    assert status is not None
+    assert status == reply_message
+
     assert mock_connection.send_message_expect_reply.call_count == 1
