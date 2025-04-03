@@ -29,7 +29,6 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
 
         :param position: The angle to move to.
         """
-        pass
 
 
 @dataclass(frozen=True, kw_only=True)

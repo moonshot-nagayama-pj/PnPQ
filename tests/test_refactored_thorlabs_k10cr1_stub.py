@@ -1,12 +1,6 @@
 import pytest
 
-from pnpq.apt.protocol import ChanIdent, JogDirection
-from pnpq.devices.polarization_controller_thorlabs_mpc import (
-    AbstractPolarizationControllerThorlabsMPC,
-)
-from pnpq.devices.polarization_controller_thorlabs_mpc_stub import (
-    PolarizationControllerThorlabsMPC320Stub,
-)
+from pnpq.apt.protocol import ChanIdent
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
     AbstractWaveplateThorlabsK10CR1,
 )

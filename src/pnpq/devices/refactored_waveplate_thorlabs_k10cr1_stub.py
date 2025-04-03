@@ -4,12 +4,11 @@ from typing import cast
 import structlog
 from pint import Quantity
 
-from pnpq.apt.protocol import Address, UStatus, UStatusBits
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
     AbstractWaveplateThorlabsK10CR1,
 )
 
-from ..apt.protocol import AptMessage_MGMSG_MOT_GET_USTATUSUPDATE, ChanIdent
+from ..apt.protocol import ChanIdent
 from ..units import pnpq_ureg
 
 
