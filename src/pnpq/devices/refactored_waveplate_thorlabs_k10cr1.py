@@ -1,6 +1,7 @@
 import threading
 import time
 from dataclasses import dataclass, field
+from abc import ABC, abstractmethod
 
 import structlog
 from pint import Quantity
@@ -17,16 +18,25 @@ from ..apt.protocol import (
     EnableState,
 )
 
+class AbstractWaveplateThorlabsK10CR1(ABC):
+    @abstractmethod
+    def move_absolute(self, position: Quantity) -> None:
+        """Move the waveplate to a certain angle.
+
+        :param position: The angle to move to.
+        """
+        pass
+
 
 @dataclass(frozen=True, kw_only=True)
-class WaveplateThorlabsK10CR1:
+class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
     connection: AptConnection
-
-    log = structlog.get_logger()
 
     # Polling threads
     tx_poller_thread: threading.Thread = field(init=False)
     tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
+
+    log = structlog.get_logger()
 
     # Setup channels for the device
     available_channels: frozenset[ChanIdent] = frozenset([ChanIdent.CHANNEL_1])
