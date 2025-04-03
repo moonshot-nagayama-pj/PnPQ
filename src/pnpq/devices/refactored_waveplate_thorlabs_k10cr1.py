@@ -19,6 +19,9 @@ from ..apt.protocol import (
 )
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
+
+    _chan_ident = ChanIdent.CHANNEL_1
+
     @abstractmethod
     def move_absolute(self, position: Quantity) -> None:
         """Move the waveplate to a certain angle.
@@ -40,8 +43,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
     # Setup channels for the device
     available_channels: frozenset[ChanIdent] = frozenset([ChanIdent.CHANNEL_1])
-
-    _chan_ident = ChanIdent.CHANNEL_1
 
     def __post_init__(self) -> None:
         # Start polling thread
