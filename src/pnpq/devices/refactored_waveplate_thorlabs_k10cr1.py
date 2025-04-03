@@ -1,7 +1,7 @@
 import threading
 import time
-from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 import structlog
 from pint import Quantity
@@ -17,6 +17,7 @@ from ..apt.protocol import (
     ChanIdent,
     EnableState,
 )
+
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
 

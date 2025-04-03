@@ -5,19 +5,16 @@ import structlog
 from pint import Quantity
 
 from pnpq.apt.protocol import Address, UStatus, UStatusBits
-from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import AbstractWaveplateThorlabsK10CR1
-
-from ..apt.protocol import (
-    AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
-    ChanIdent,
+from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
+    AbstractWaveplateThorlabsK10CR1,
 )
+
+from ..apt.protocol import AptMessage_MGMSG_MOT_GET_USTATUSUPDATE, ChanIdent
 from ..units import pnpq_ureg
 
 
 @dataclass(frozen=True, kw_only=True)
-class WaveplateThorlabsK10CR1Stub(
-    AbstractWaveplateThorlabsK10CR1
-):
+class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
     log = structlog.get_logger()
 
     # Setup channels for the device
