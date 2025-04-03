@@ -11,7 +11,7 @@ from pnpq.units import pnpq_ureg
 
 
 @pytest.fixture(name="stub_mpc")
-def stub_waveplate_fixture() -> AbstractPolarizationControllerThorlabsMPC:
+def stub_mpc_fixture() -> AbstractPolarizationControllerThorlabsMPC:
     mpc = PolarizationControllerThorlabsMPC320Stub()
     return mpc
 
