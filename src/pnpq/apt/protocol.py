@@ -48,6 +48,10 @@ class AptMessageId(int, Enum):
     MGMSG_POL_REQ_PARAMS = 0x0531
     MGMSG_POL_SET_PARAMS = 0x0530
 
+    MGMSG_MOT_SET_VELPARAMS = 0x0413
+    MGMSG_MOT_REQ_VELPARAMS = 0x0414
+    MGMSG_MOT_GET_VELPARAMS = 0x0415
+
     MGMSG_MOT_MOVE_JOG = 0x046A
     MGMSG_MOT_MOVE_STOP = 0x0465
     MGMSG_MOT_MOVE_STOPPED = 0x0466
@@ -615,6 +619,15 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
             self.status.to_bits(),
         )
 
+@dataclass(frozen=True, kw_only=True)
+class AptMessageWithDataVelParams(AptMessageWithData):
+    # Used in MGMSG_MOT_SET_VELPARAMS, MGMSG_MOT_GET_VELPARAMS
+
+    data_length: ClassVar[int] = 14
+
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}{ATS.WORD}2{ATS.LONG}2{ATS.WORD}2"
+    )
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessageWithDataPolParams(AptMessageWithData):
@@ -687,6 +700,24 @@ class AptMessageWithDataPolParams(AptMessageWithData):
 
 # Concrete message implementation classes
 
+    # MGMSG_MOT_SET_VELPARAMS = 0x0413
+    # MGMSG_MOT_REQ_VELPARAMS = 0x0414
+    # MGMSG_MOT_GET_VELPARAMS = 0x0415
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_REQ_VELPARAMS(AptMessageHeaderOnlyChanIdent):
+    message_id = AptMessageId.MGMSG_MOT_SET_VELPARAMS
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_SET_VELPARAMS(AptMessageWithData):
+    message_id = AptMessageId.MGMSG_MOT_REQ_VELPARAMS
+    data_length: ClassVar[int] = 14
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_GET_VELPARAMS(AptMessageWithData):
+    message_id = AptMessageId.MGMSG_MOT_GET_VELPARAMS
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_HW_DISCONNECT(AptMessageHeaderOnlyNoParams):
