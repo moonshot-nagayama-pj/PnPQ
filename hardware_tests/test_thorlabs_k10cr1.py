@@ -1,9 +1,11 @@
 from typing import Generator
+
 import pytest
 
 from pnpq.apt.connection import AptConnection
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
 from pnpq.units import pnpq_ureg
+
 
 @pytest.fixture(name="device", scope="function")
 def device_fixture() -> Generator[WaveplateThorlabsK10CR1]:

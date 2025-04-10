@@ -619,15 +619,68 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
             self.status.to_bits(),
         )
 
+
 @dataclass(frozen=True, kw_only=True)
 class AptMessageWithDataVelParams(AptMessageWithData):
     # Used in MGMSG_MOT_SET_VELPARAMS, MGMSG_MOT_GET_VELPARAMS
-
     data_length: ClassVar[int] = 14
 
     message_struct: ClassVar[Struct] = Struct(
-        f"{AptMessageWithData.header_struct_str}{ATS.WORD}2{ATS.LONG}2{ATS.WORD}2"
+        f"{AptMessageWithData.header_struct_str}{ATS.WORD}{ATS.LONG}{ATS.LONG}{ATS.LONG}"
     )
+
+    chan_ident: ChanIdent
+    minimum_velocity: int
+    acceleration: int
+    maximum_velocity: int
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            chan_ident,
+            minimum_velocity,
+            acceleration,
+            maximum_velocity,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+
+        return cls(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            chan_ident=ChanIdent(chan_ident),
+            minimum_velocity=minimum_velocity,
+            acceleration=acceleration,
+            maximum_velocity=maximum_velocity,
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.chan_ident,
+            self.minimum_velocity,
+            self.acceleration,
+            self.maximum_velocity,
+        )
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessageWithDataPolParams(AptMessageWithData):
@@ -700,24 +753,25 @@ class AptMessageWithDataPolParams(AptMessageWithData):
 
 # Concrete message implementation classes
 
-    # MGMSG_MOT_SET_VELPARAMS = 0x0413
-    # MGMSG_MOT_REQ_VELPARAMS = 0x0414
-    # MGMSG_MOT_GET_VELPARAMS = 0x0415
+# MGMSG_MOT_SET_VELPARAMS = 0x0413
+# MGMSG_MOT_REQ_VELPARAMS = 0x0414
+# MGMSG_MOT_GET_VELPARAMS = 0x0415
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_SET_VELPARAMS(AptMessageWithDataVelParams):
+    message_id = AptMessageId.MGMSG_MOT_SET_VELPARAMS
 
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_REQ_VELPARAMS(AptMessageHeaderOnlyChanIdent):
-    message_id = AptMessageId.MGMSG_MOT_SET_VELPARAMS
-
-@dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_SET_VELPARAMS(AptMessageWithData):
     message_id = AptMessageId.MGMSG_MOT_REQ_VELPARAMS
-    data_length: ClassVar[int] = 14
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_GET_VELPARAMS(AptMessageWithData):
+class AptMessage_MGMSG_MOT_GET_VELPARAMS(AptMessageWithDataVelParams):
     message_id = AptMessageId.MGMSG_MOT_GET_VELPARAMS
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_HW_DISCONNECT(AptMessageHeaderOnlyNoParams):
