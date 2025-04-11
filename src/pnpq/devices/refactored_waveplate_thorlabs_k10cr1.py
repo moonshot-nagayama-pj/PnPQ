@@ -2,6 +2,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import cast
 
 import structlog
 from pint import Quantity
@@ -12,8 +13,10 @@ from ..apt.protocol import (
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+    AptMessage_MGMSG_MOT_REQ_VELPARAMS,
     ChanIdent,
     EnableState,
 )
@@ -29,6 +32,10 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
 
         :param position: The angle to move to.
         """
+
+    @abstractmethod
+    def get_velparams(self) -> AptMessage_MGMSG_MOT_GET_VELPARAMS:
+        """Request velocity parameters from the device."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -137,3 +144,23 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
 
         self.set_channel_enabled(False)
+
+    def get_velparams(self) -> AptMessage_MGMSG_MOT_GET_VELPARAMS:
+
+        msg = self.connection.send_message_expect_reply(
+             AptMessage_MGMSG_MOT_REQ_VELPARAMS(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_VELPARAMS)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+
+        self.log.debug("get_velparams command finished: " + str(msg))
+
+        return cast(AptMessage_MGMSG_MOT_GET_VELPARAMS, msg)
