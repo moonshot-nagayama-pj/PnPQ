@@ -180,8 +180,9 @@ thorlabs_context.add_transformation(
     "k10cr1_velocity",
     "k10cr1_step / second",
     get_unit_transformation(
-        input_to_output=lambda degrees_per_second: degrees_per_second * 136533,
-        input_unit=cast(Unit, pnpq_ureg("degree / second")),
+        input_to_output=lambda degrees_per_second: (degrees_per_second * 136533)
+        / 7329109,
+        input_unit=cast(Unit, pnpq_ureg("k10cr1_velocity")),
         output_unit=cast(Unit, pnpq_ureg("k10cr1_step / second")),
     ),
 )
@@ -190,13 +191,10 @@ thorlabs_context.add_transformation(
     "k10cr1_step / second",
     "k10cr1_velocity",
     get_unit_transformation(
-        input_to_output=lambda step_per_second: (
-            step_per_second / 136533 * pnpq_ureg("degree / second")
-        )
-        .to("k10cr1_velocity")
-        .magnitude,
+        input_to_output=lambda step_per_second: (step_per_second / 136533) * 7329109,
         input_unit=cast(Unit, pnpq_ureg("k10cr1_step / second")),
         output_unit=cast(Unit, pnpq_ureg("k10cr1_velocity")),
+        output_rounded=True,
     ),
 )
 
@@ -227,12 +225,11 @@ thorlabs_context.add_transformation(
     "k10cr1_acceleration",
     get_unit_transformation(
         input_to_output=lambda steps_per_sec_squared: (
-            steps_per_sec_squared / 136533 * pnpq_ureg("degree / second ** 2")
-        )
-        .to("k10cr1_acceleration")
-        .magnitude,
+            (steps_per_sec_squared / 136533) * 1502
+        ),
         input_unit=cast(Unit, pnpq_ureg("k10cr1_step / second ** 2")),
         output_unit=cast(Unit, pnpq_ureg("k10cr1_acceleration")),
+        output_rounded=True,
     ),
 )
 
@@ -240,9 +237,9 @@ thorlabs_context.add_transformation(
     "k10cr1_acceleration",
     "k10cr1_step / second ** 2",
     get_unit_transformation(
-        input_to_output=lambda degrees_per_sec_squared: degrees_per_sec_squared
+        input_to_output=lambda k10cr1_acceleration: (k10cr1_acceleration / 1502)
         * 136533,
-        input_unit=cast(Unit, pnpq_ureg("degrees / second ** 2")),
+        input_unit=cast(Unit, pnpq_ureg("k10cr1_acceleration")),
         output_unit=cast(Unit, pnpq_ureg("k10cr1_step / second ** 2")),
     ),
 )
