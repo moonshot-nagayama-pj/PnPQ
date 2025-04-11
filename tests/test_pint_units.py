@@ -188,6 +188,10 @@ def test_from_k10cr1_velocity_conversion(
     assert angular_velocity.magnitude == pytest.approx(velocity.magnitude)
     assert angular_velocity.units == velocity.units
 
+    # Check if rounded correctly if output units are k10cr1_step per second
+    if angular_velocity.units == pnpq_ureg("k10cr1_step / second"):
+        assert isinstance(velocity.magnitude, int)
+
 
 # Test that k10cr1_acceleration quantities accurately convert into [angle] / second^2 quantities
 # According to the protocol (p.41), it states that we should convert 1 degree/sec^2 to 1502 steps/sec^2 for acceleration
@@ -232,3 +236,7 @@ def test_from_k10cr1_acceleration_conversion(
     acceleration = pint_k10cr1_acceleration.to(angular_acceleration.units)
     assert angular_acceleration.magnitude == pytest.approx(acceleration.magnitude)
     assert angular_acceleration.units == acceleration.units
+
+    # Check if rounded correctly if output units are k10cr1_step per second
+    if angular_acceleration.units == pnpq_ureg("k10cr1_step / second ** 2"):
+        assert isinstance(acceleration.magnitude, int)
