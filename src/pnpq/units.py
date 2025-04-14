@@ -154,7 +154,15 @@ thorlabs_context.add_transformation(
     ),
 )
 
-# Add K10CR1 velocity transformations
+# Add K10CR1 velocity transformations.
+#
+# There are two ways to think about the K10CR1's velocity.
+# 
+# The first, ``k10cr1_step / second``, represents the number of steps traversed per second. This value is probably the easiest for an end-user to understand.
+#
+# The second, ``k10cr1_velocity``, represents the velocity as the K10CR1's motor controller understands it. This value is used internally in the ``VELPARAMS`` messages.
+#
+# Transformations to degrees or radians per second are of course also available.
 thorlabs_context.add_transformation(
     "degree / second",
     "k10cr1_velocity",
