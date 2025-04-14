@@ -154,6 +154,104 @@ thorlabs_context.add_transformation(
     ),
 )
 
+# Add K10CR1 velocity transformations.
+#
+# There are two ways to think about the K10CR1's velocity.
+#
+# The first, ``k10cr1_step / second``, represents the number of steps traversed per second. This value is probably the easiest for an end-user to understand.
+#
+# The second, ``k10cr1_velocity``, represents the velocity as the K10CR1's motor controller understands it. This value is used internally in the ``VELPARAMS`` messages.
+#
+# Transformations to degrees or radians per second are of course also available.
+thorlabs_context.add_transformation(
+    "degree / second",
+    "k10cr1_velocity",
+    get_unit_transformation(
+        input_to_output=lambda degrees_per_second: degrees_per_second * 7329109,
+        input_unit=cast(Unit, pnpq_ureg("degree / second")),
+        output_unit=cast(Unit, pnpq_ureg("k10cr1_velocity")),
+        output_rounded=True,
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "k10cr1_velocity",
+    "degree / second",
+    get_unit_transformation(
+        input_to_output=lambda velocity: velocity / 7329109,
+        input_unit=cast(Unit, pnpq_ureg("k10cr1_velocity")),
+        output_unit=cast(Unit, pnpq_ureg("degree / second")),
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "k10cr1_velocity",
+    "k10cr1_step / second",
+    get_unit_transformation(
+        input_to_output=lambda velocity: (velocity * 136533) / 7329109,
+        input_unit=cast(Unit, pnpq_ureg("k10cr1_velocity")),
+        output_unit=cast(Unit, pnpq_ureg("k10cr1_step / second")),
+        output_rounded=True,
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "k10cr1_step / second",
+    "k10cr1_velocity",
+    get_unit_transformation(
+        input_to_output=lambda steps_per_second: (steps_per_second / 136533) * 7329109,
+        input_unit=cast(Unit, pnpq_ureg("k10cr1_step / second")),
+        output_unit=cast(Unit, pnpq_ureg("k10cr1_velocity")),
+        output_rounded=True,
+    ),
+)
+
+# Add accleleration transformations
+thorlabs_context.add_transformation(
+    "degree / second ** 2",
+    "k10cr1_acceleration",
+    get_unit_transformation(
+        input_to_output=lambda degrees_per_sec_squared: degrees_per_sec_squared * 1502,
+        input_unit=cast(Unit, pnpq_ureg("degree / second ** 2")),
+        output_unit=cast(Unit, pnpq_ureg("k10cr1_acceleration")),
+        output_rounded=True,
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "k10cr1_acceleration",
+    "degree / second ** 2",
+    get_unit_transformation(
+        input_to_output=lambda acceleration: acceleration / 1502,
+        input_unit=cast(Unit, pnpq_ureg("k10cr1_acceleration")),
+        output_unit=cast(Unit, pnpq_ureg("degree / second ** 2")),
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "k10cr1_step / second ** 2",
+    "k10cr1_acceleration",
+    get_unit_transformation(
+        input_to_output=lambda steps_per_sec_squared: (
+            (steps_per_sec_squared / 136533) * 1502
+        ),
+        input_unit=cast(Unit, pnpq_ureg("k10cr1_step / second ** 2")),
+        output_unit=cast(Unit, pnpq_ureg("k10cr1_acceleration")),
+        output_rounded=True,
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "k10cr1_acceleration",
+    "k10cr1_step / second ** 2",
+    get_unit_transformation(
+        input_to_output=lambda acceleration: (acceleration / 1502) * 136533,
+        input_unit=cast(Unit, pnpq_ureg("k10cr1_acceleration")),
+        output_unit=cast(Unit, pnpq_ureg("k10cr1_step / second ** 2")),
+        output_rounded=True,
+    ),
+)
+
 # Add and enable the context
 pnpq_ureg.add_context(thorlabs_context)
 pnpq_ureg.enable_contexts("thorlabs_context")
