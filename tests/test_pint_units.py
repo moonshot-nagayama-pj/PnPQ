@@ -145,7 +145,7 @@ def test_to_mpc320_velocity_out_of_bounds(velocity: Quantity) -> None:
 
 
 # Test that [angle] / second quantities accurately convert into k10cr1_velocity quantities
-# According to the protocol (p.41), it states that we should convert 1 degree/sec to 7329109 steps/sec for K10CR1.
+# According to the protocol documentation (p.41), it states that we should convert 1 degree/sec to 7329109 steps/sec for K10CR1.
 @pytest.mark.parametrize(
     "angular_velocity, k10cr1_velocity",
     [
