@@ -82,7 +82,6 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
         """Identifies the device represented by this instance
         by flashing the LED light on the device.
 
-
         :param chan_ident: The motor channel to identify.
 
         """
@@ -127,9 +126,8 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
         """Enables or disables the specified motor channel. End users will not typically use this command. Instead, commands that require a channel to be enabled will automatically enable the channel before executing, and disable the channel when complete.
 
         :param chan_ident: The motor channel to enable.
-        :param enabled: A boolean value that specifies whether the
-            devices are enabled or disabled. `True` will enable the
-            channel and vice versa.
+        :param enabled: Set to `True` to enable the channel,
+            or `False` to disable.
 
         """
 
@@ -147,20 +145,17 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
         All parameters of this function are optional. Only fields
         with values are updated on the device.
 
-        :param velocity: The velocity which the device will move.
-            The unit should be in `mpc320_velocity` or equivalent.
+        :param velocity: The rotational velocity. Applies to all channels.
+            Unit must be convertible to `mpc320_velocity`.
         :param home_position: The position where the device will
             move to when the :py:func:`home` function is called.
-            The unit should be in `mpc320_step` or equivalent.
+            Unit must be convertible to `mpc320_step`.
         :param jog_step_1: The amount which the jog function will
-            move for channel 1. The unit should be in `mpc320_step`
-            or equivalent.
+            move for channel 1. Unit must be convertible to `mpc320_step`.
         :param jog_step_2: The amount which the jog function will
-            move for channel 2. The unit should be in `mpc320_step`
-            or equivalent.
+            move for channel 2. Unit must be convertible to `mpc320_step`.
         :param jog_step_3: The amount which the jog function will
-            move for channel 3. The unit should be in `mpc320_step`
-            or equivalent.
+            move for channel 3. Unit must be convertible to `mpc320_step`.
 
         """
 
