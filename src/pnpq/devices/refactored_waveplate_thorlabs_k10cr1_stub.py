@@ -45,9 +45,8 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
             {
                 "minimum_velocity": 0 * pnpq_ureg.k10cr1_velocity,
                 "acceleration": 0 * pnpq_ureg.k10cr1_acceleration,
-                "maximum_velocity": 0
-                * pnpq_ureg.k10cr1_velocity,  # TODO: Search for appropriate initial values
-            },
+                "maximum_velocity": 10
+                * pnpq_ureg.k10cr1_velocity,  # Default value set to 10 k10cr1_velocity based on expected operational range
         )
 
     def move_absolute(self, position: Quantity) -> None:
