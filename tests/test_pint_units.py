@@ -142,3 +142,101 @@ def test_to_mpc320_velocity_out_of_bounds(velocity: Quantity) -> None:
         match="Rounded mpc320_velocity [0-9]+ is out of range \\(10, 100\\)\\.",
     ):
         velocity.to(pnpq_ureg.mpc320_velocity)
+
+
+# Test that [angle] / second quantities accurately convert into k10cr1_velocity quantities
+# According to the protocol documentation (p.41), it states that we should convert 1 degree/sec to 7329109 steps/sec for K10CR1.
+@pytest.mark.parametrize(
+    "angular_velocity, k10cr1_velocity",
+    [
+        (1 * pnpq_ureg("degree / second"), 7329109),
+        (2 * pnpq_ureg("degree / second"), 14658218),
+        (1.00000001 * pnpq_ureg("degree / second"), 7329109),
+        (1.99999999 * pnpq_ureg("degree / second"), 14658218),
+        (0.01745329251 * pnpq_ureg("radian / second"), 7329109),
+        (0.03490658503 * pnpq_ureg("radian / second"), 14658218),
+        (136533 * pnpq_ureg("k10cr1_step / second"), 7329109),
+        (273066 * pnpq_ureg("k10cr1_step / second"), 14658218),
+    ],
+)
+def test_to_k10cr1_velocity_conversion(
+    angular_velocity: Quantity, k10cr1_velocity: float
+) -> None:
+
+    pint_k10cr1_velocity = angular_velocity.to("k10cr1_velocity")
+    assert k10cr1_velocity == pint_k10cr1_velocity.magnitude
+    assert isinstance(pint_k10cr1_velocity.magnitude, int)
+
+
+@pytest.mark.parametrize(
+    "k10cr1_velocity, angular_velocity",
+    [
+        (7329109, 1 * pnpq_ureg("degree / second")),
+        (14658218, 2 * pnpq_ureg("degree / second")),
+        (7329109, 0.01745329251 * pnpq_ureg("radian / second")),
+        (14658218, 0.03490658503 * pnpq_ureg("radian / second")),
+        (7329109, 136533 * pnpq_ureg("k10cr1_step / second")),
+        (14658218, 273066 * pnpq_ureg("k10cr1_step / second")),
+    ],
+)
+def test_from_k10cr1_velocity_conversion(
+    k10cr1_velocity: float, angular_velocity: Quantity
+) -> None:
+
+    pint_k10cr1_velocity = k10cr1_velocity * pnpq_ureg.k10cr1_velocity
+    velocity = pint_k10cr1_velocity.to(angular_velocity.units)
+    assert angular_velocity.magnitude == pytest.approx(velocity.magnitude)
+    assert angular_velocity.units == velocity.units
+
+    # Check if rounded correctly if output units are k10cr1_step per second
+    if angular_velocity.units == pnpq_ureg("k10cr1_step / second"):
+        assert isinstance(velocity.magnitude, int)
+
+
+# Test that k10cr1_acceleration quantities accurately convert into [angle] / second^2 quantities
+# According to the protocol (p.41), it states that we should convert 1 degree/sec^2 to 1502 steps/sec^2 for acceleration
+@pytest.mark.parametrize(
+    "angular_acceleration, k10cr1_acceleration",
+    [
+        (1 * pnpq_ureg("degree / second ** 2"), 1502),
+        (2 * pnpq_ureg("degree / second ** 2"), 3004),
+        (1.0001 * pnpq_ureg("degree / second ** 2"), 1502),
+        (1.9999 * pnpq_ureg("degree / second ** 2"), 3004),
+        (0.01745329251 * pnpq_ureg("radian / second ** 2"), 1502),
+        (0.03490658503 * pnpq_ureg("radian / second ** 2"), 3004),
+        (136533 * pnpq_ureg("k10cr1_step / second ** 2"), 1502),
+        (273066 * pnpq_ureg("k10cr1_step / second ** 2"), 3004),
+    ],
+)
+def test_to_k10cr1_acceleration_conversion(
+    angular_acceleration: Quantity, k10cr1_acceleration: float
+) -> None:
+
+    pint_k10cr1_acceleration = angular_acceleration.to("k10cr1_acceleration")
+    assert k10cr1_acceleration == pint_k10cr1_acceleration.magnitude
+    assert isinstance(pint_k10cr1_acceleration.magnitude, int)
+
+
+@pytest.mark.parametrize(
+    "k10cr1_acceleration, angular_acceleration",
+    [
+        (1502, 1 * pnpq_ureg("degree / second ** 2")),
+        (3004, 2 * pnpq_ureg("degree / second ** 2")),
+        (1502, 0.01745329251 * pnpq_ureg("radian / second ** 2")),
+        (3004, 0.03490658503 * pnpq_ureg("radian / second ** 2")),
+        (1502, 136533 * pnpq_ureg("k10cr1_step / second ** 2")),
+        (3004, 273066 * pnpq_ureg("k10cr1_step / second ** 2")),
+    ],
+)
+def test_from_k10cr1_acceleration_conversion(
+    k10cr1_acceleration: float, angular_acceleration: Quantity
+) -> None:
+
+    pint_k10cr1_acceleration = k10cr1_acceleration * pnpq_ureg.k10cr1_acceleration
+    acceleration = pint_k10cr1_acceleration.to(angular_acceleration.units)
+    assert angular_acceleration.magnitude == pytest.approx(acceleration.magnitude)
+    assert angular_acceleration.units == acceleration.units
+
+    # Check if rounded correctly if output units are k10cr1_step per second
+    if angular_acceleration.units == pnpq_ureg("k10cr1_step / second ** 2"):
+        assert isinstance(acceleration.magnitude, int)
