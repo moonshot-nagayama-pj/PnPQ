@@ -24,7 +24,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         ]
     )
 
-    current_params: WaveplateVelocityParams = field(init=False)
+    current_velocity_params: WaveplateVelocityParams = field(init=False)
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
 
@@ -41,7 +41,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
         object.__setattr__(
             self,
-            "current_params",
+            "current_velocity_params",
             {
                 "minimum_velocity": 0 * pnpq_ureg.k10cr1_velocity,
                 "acceleration": 0 * pnpq_ureg.k10cr1_acceleration,
@@ -59,7 +59,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         self.log.info(f"[Waveplate Stub] Channel {self._chan_ident} move to {position}")
 
     def get_velparams(self) -> WaveplateVelocityParams:
-        return self.current_params
+        return self.current_velocity_params
 
     def set_velparams(
         self,
@@ -69,15 +69,17 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
     ) -> None:
 
         if minimum_velocity is not None:
-            self.current_params["minimum_velocity"] = cast(
+            self.current_velocity_params["minimum_velocity"] = cast(
                 Quantity, minimum_velocity.to("k10cr1_velocity")
             )
         if acceleration is not None:
-            self.current_params["acceleration"] = cast(
+            self.current_velocity_params["acceleration"] = cast(
                 Quantity, acceleration.to("k10cr1_acceleration")
             )
         if maximum_velocity is not None:
-            self.current_params["maximum_velocity"] = cast(
+            self.current_velocity_params["maximum_velocity"] = cast(
                 Quantity, maximum_velocity.to("k10cr1_velocity")
             )
-        self.log.info(f"[K10CR1 Stub] Updated parameters: {self.current_params}")
+        self.log.info(
+            f"[K10CR1 Stub] Updated parameters: {self.current_velocity_params}"
+        )
