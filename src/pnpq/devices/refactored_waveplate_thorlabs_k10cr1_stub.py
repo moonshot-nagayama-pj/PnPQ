@@ -8,7 +8,7 @@ from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
     AbstractWaveplateThorlabsK10CR1,
 )
 
-from ..apt.protocol import ChanIdent
+from ..apt.protocol import Address, AptMessage_MGMSG_MOT_GET_VELPARAMS, ChanIdent
 from ..units import pnpq_ureg
 
 
@@ -46,3 +46,14 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
 
         self.log.info(f"[Waveplate Stub] Channel {self._chan_ident} move to {position}")
+
+    def get_velparams(self) -> AptMessage_MGMSG_MOT_GET_VELPARAMS:
+        return AptMessage_MGMSG_MOT_GET_VELPARAMS(
+            destination=Address.HOST_CONTROLLER,
+            source=Address.GENERIC_USB,
+            chan_ident=self._chan_ident,
+            minimum_velocity=0,
+            acceleration=1,
+            maximum_velocity=2, # Not sure what to put here
+
+        )

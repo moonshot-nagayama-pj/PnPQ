@@ -2,7 +2,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import cast
+from typing import TypedDict, cast
 
 import structlog
 from pint import Quantity
@@ -20,6 +20,19 @@ from ..apt.protocol import (
     ChanIdent,
     EnableState,
 )
+
+
+class WaveplateVelocityParams(TypedDict):
+    """TypedDict for waveplate velocity parameters.
+    Used in `get_velparams` method.
+    """
+
+    #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
+    minimum_velocity: Quantity
+    #: Dimensionality must be ([angle] / [time] ** 2) or k10cr1_acceleration
+    acceleration: Quantity
+    #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
+    maximum_velocity: Quantity
 
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
