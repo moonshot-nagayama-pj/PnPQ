@@ -48,7 +48,6 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
     def get_status_all(self) -> tuple[AptMessage_MGMSG_MOT_GET_USTATUSUPDATE, ...]:
         """Fetch the latest status of all channels on the device.
 
-        :param chan_ident: The motor channel to fetch status for.
         :return: A tuple of
             :py:class:`AptMessage_MGMSG_MOT_GET_USTATUSUPDATE`,
             one for each channel.
@@ -83,7 +82,6 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
         """Identifies the device represented by this instance
         by flashing the LED light on the device.
 
-        On a stub device, this function does nothing.
 
         :param chan_ident: The motor channel to identify.
 
@@ -126,11 +124,11 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
 
     @abstractmethod
     def set_channel_enabled(self, chan_ident: ChanIdent, enabled: bool) -> None:
-        """Enables or disables a channel specified.
+        """Enables or disables the specified motor channel. End users will not typically use this command. Instead, commands that require a channel to be enabled will automatically enable the channel before executing, and disable the channel when complete.
 
-        :param chan_ident: The motor channel to move.
+        :param chan_ident: The motor channel to enable.
         :param enabled: A boolean value that specifies whether the
-            devices are enabled or disable. `True` will enable the
+            devices are enabled or disabled. `True` will enable the
             channel and vice versa.
 
         """
