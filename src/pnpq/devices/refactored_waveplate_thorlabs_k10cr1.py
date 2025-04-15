@@ -17,9 +17,11 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
+    AptMessage_MGMSG_MOT_SET_VELPARAMS,
     ChanIdent,
     EnableState,
 )
+from ..units import pnpq_ureg
 
 
 class WaveplateVelocityParams(TypedDict):
@@ -47,8 +49,22 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         """
 
     @abstractmethod
-    def get_velparams(self) -> AptMessage_MGMSG_MOT_GET_VELPARAMS:
+    def get_velparams(self) -> WaveplateVelocityParams:
         """Request velocity parameters from the device."""
+
+    @abstractmethod
+    def set_velparams(
+        self,
+        minimum_velocity: None | Quantity = None,
+        acceleration: None | Quantity = None,
+        maximum_velocity: None | Quantity = None,
+    ) -> None:
+        """Set velocity parameters on the device.
+
+        :param minimum_velocity: The minimum velocity.
+        :param acceleration: The acceleration.
+        :param maximum_velocity: The maximum velocity.
+        """
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -158,10 +174,10 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
         self.set_channel_enabled(False)
 
-    def get_velparams(self) -> AptMessage_MGMSG_MOT_GET_VELPARAMS:
+    def get_velparams(self) -> WaveplateVelocityParams:
 
-        msg = self.connection.send_message_expect_reply(
-             AptMessage_MGMSG_MOT_REQ_VELPARAMS(
+        params = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_REQ_VELPARAMS(
                 chan_ident=self._chan_ident,
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
@@ -173,7 +189,51 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 and message.source == Address.GENERIC_USB
             ),
         )
+        assert isinstance(params, AptMessage_MGMSG_MOT_GET_VELPARAMS)
 
-        self.log.debug("get_velparams command finished: " + str(msg))
+        result: WaveplateVelocityParams = {
+            "minimum_velocity": params.minimum_velocity * pnpq_ureg.k10cr1_velocity,
+            "acceleration": params.acceleration * pnpq_ureg.k10cr1_acceleration,
+            "maximum_velocity": params.maximum_velocity * pnpq_ureg.k10cr1_velocity,
+        }
+        return result
 
-        return cast(AptMessage_MGMSG_MOT_GET_VELPARAMS, msg)
+    def set_velparams(
+        self,
+        minimum_velocity: None | Quantity = None,
+        acceleration: None | Quantity = None,
+        maximum_velocity: None | Quantity = None,
+    ) -> None:
+
+        # First get the current velocity parameters
+        params = self.get_velparams()
+
+        if minimum_velocity is not None:
+            params["minimum_velocity"] = cast(
+                Quantity, minimum_velocity.to("k10cr1_velocity")
+            )
+        if acceleration is not None:
+            params["acceleration"] = cast(
+                Quantity, acceleration.to("k10cr1_acceleration")
+            )
+        if maximum_velocity is not None:
+            params["maximum_velocity"] = cast(
+                Quantity, maximum_velocity.to("k10cr1_velocity")
+            )
+
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOT_SET_VELPARAMS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+                chan_ident=self._chan_ident,
+                minimum_velocity=params["minimum_velocity"]
+                .to(pnpq_ureg.k10cr1_velocity)
+                .magnitude,
+                acceleration=params["acceleration"]
+                .to(pnpq_ureg.k10cr1_acceleration)
+                .magnitude,
+                maximum_velocity=params["maximum_velocity"]
+                .to(pnpq_ureg.k10cr1_velocity)
+                .magnitude,
+            )
+        )

@@ -329,7 +329,9 @@ class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMP
             AptMessage_MGMSG_POL_SET_PARAMS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
-                velocity=round(params["velocity"].magnitude),
+                velocity=round(
+                    params["velocity"].magnitude
+                ),  # Note: Should probably convert these to correct units before getting magnitude.
                 home_position=round(params["home_position"].magnitude),
                 jog_step_1=round(params["jog_step_1"].magnitude),
                 jog_step_2=round(params["jog_step_2"].magnitude),

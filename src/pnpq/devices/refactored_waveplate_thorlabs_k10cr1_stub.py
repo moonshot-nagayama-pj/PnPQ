@@ -6,9 +6,10 @@ from pint import Quantity
 
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
     AbstractWaveplateThorlabsK10CR1,
+    WaveplateVelocityParams,
 )
 
-from ..apt.protocol import Address, AptMessage_MGMSG_MOT_GET_VELPARAMS, ChanIdent
+from ..apt.protocol import ChanIdent
 from ..units import pnpq_ureg
 
 
@@ -23,8 +24,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         ]
     )
 
-    # TODO: Add K10CR1 parameters
-    # current_params = None
+    current_params: WaveplateVelocityParams = field(init=False)
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
 
@@ -39,6 +39,17 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
             },
         )
 
+        object.__setattr__(
+            self,
+            "current_params",
+            {
+                "minimum_velocity": 0 * pnpq_ureg.k10cr1_velocity,
+                "acceleration": 0 * pnpq_ureg.k10cr1_acceleration,
+                "maximum_velocity": 0
+                * pnpq_ureg.k10cr1_velocity,  # TODO: Search for appropriate initial values
+            },
+        )
+
     def move_absolute(self, position: Quantity) -> None:
         # Convert distance to K1CR10 steps
         # TODO: Check if input is too large or too small for the device
@@ -47,13 +58,26 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
         self.log.info(f"[Waveplate Stub] Channel {self._chan_ident} move to {position}")
 
-    def get_velparams(self) -> AptMessage_MGMSG_MOT_GET_VELPARAMS:
-        return AptMessage_MGMSG_MOT_GET_VELPARAMS(
-            destination=Address.HOST_CONTROLLER,
-            source=Address.GENERIC_USB,
-            chan_ident=self._chan_ident,
-            minimum_velocity=0,
-            acceleration=1,
-            maximum_velocity=2, # Not sure what to put here
+    def get_velparams(self) -> WaveplateVelocityParams:
+        return self.current_params
 
-        )
+    def set_velparams(
+        self,
+        minimum_velocity: None | Quantity = None,
+        acceleration: None | Quantity = None,
+        maximum_velocity: None | Quantity = None,
+    ) -> None:
+
+        if minimum_velocity is not None:
+            self.current_params["minimum_velocity"] = cast(
+                Quantity, minimum_velocity.to("k10cr1_velocity")
+            )
+        if acceleration is not None:
+            self.current_params["acceleration"] = cast(
+                Quantity, acceleration.to("k10cr1_acceleration")
+            )
+        if maximum_velocity is not None:
+            self.current_params["maximum_velocity"] = cast(
+                Quantity, maximum_velocity.to("k10cr1_velocity")
+            )
+        self.log.info(f"[K10CR1 Stub] Updated parameters: {self.current_params}")
