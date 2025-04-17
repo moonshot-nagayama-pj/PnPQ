@@ -753,11 +753,6 @@ class AptMessageWithDataPolParams(AptMessageWithData):
 
 # Concrete message implementation classes
 
-# MGMSG_MOT_SET_VELPARAMS = 0x0413
-# MGMSG_MOT_REQ_VELPARAMS = 0x0414
-# MGMSG_MOT_GET_VELPARAMS = 0x0415
-
-
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_SET_VELPARAMS(AptMessageWithDataVelParams):
     message_id = AptMessageId.MGMSG_MOT_SET_VELPARAMS
