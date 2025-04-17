@@ -718,9 +718,9 @@ def test_AptMessage_MGMSG_MOT_SET_VELPARAMS_from_bytes() -> None:
     assert msg.message_id == 0x0413
     assert msg.source == 0x01
     assert msg.chan_ident == 0x01
-    assert msg.minimum_velocity.to(pnpq_ureg.k10cr1_velocity).magnitude == 0x00000000
-    assert msg.acceleration.to(pnpq_ureg.k10cr1_acceleration).magnitude == 0x000035B0
-    assert msg.maximum_velocity.to(pnpq_ureg.k10cr1_velocity).magnitude == 0x00CCCCCD
+    assert msg.minimum_velocity == 0x00000000
+    assert msg.acceleration == 0x000035B0
+    assert msg.maximum_velocity == 0x00CCCCCD
 
 
 def test_AptMessage_MGMSG_MOT_SET_VELPARAMS_to_bytes() -> None:
@@ -728,9 +728,9 @@ def test_AptMessage_MGMSG_MOT_SET_VELPARAMS_to_bytes() -> None:
         destination=Address.BAY_1,
         source=Address.HOST_CONTROLLER,
         chan_ident=ChanIdent.CHANNEL_1,
-        minimum_velocity=0x00000000 * pnpq_ureg.k10cr1_velocity,
-        acceleration=0x000035B0 * pnpq_ureg.k10cr1_acceleration,
-        maximum_velocity=0x00CCCCCD * pnpq_ureg.k10cr1_velocity,
+        minimum_velocity=0x00000000,
+        acceleration=0x000035B0,
+        maximum_velocity=0x00CCCCCD,
     )
     assert msg.to_bytes() == bytes.fromhex(
         "1304 0E00 A2 01 0100 00000000 B0350000 CDCCCC00"
@@ -745,9 +745,9 @@ def test_AptMessage_MGMSG_MOT_GET_VELPARAMS_from_bytes() -> None:
     assert msg.message_id == 0x0415
     assert msg.source == 0x01
     assert msg.chan_ident == 0x01
-    assert msg.minimum_velocity.to(pnpq_ureg.k10cr1_velocity).magnitude == 0x00000000
-    assert msg.acceleration.to(pnpq_ureg.k10cr1_acceleration).magnitude == 0x000035B0
-    assert msg.maximum_velocity.to(pnpq_ureg.k10cr1_velocity).magnitude == 0x00CCCCCD
+    assert msg.minimum_velocity == 0x00000000
+    assert msg.acceleration == 0x000035B0
+    assert msg.maximum_velocity == 0x00CCCCCD
 
 
 def test_AptMessage_MGMSG_MOT_GET_VELPARAMS_to_bytes() -> None:
@@ -755,9 +755,9 @@ def test_AptMessage_MGMSG_MOT_GET_VELPARAMS_to_bytes() -> None:
         destination=Address.BAY_1,
         source=Address.HOST_CONTROLLER,
         chan_ident=ChanIdent.CHANNEL_1,
-        minimum_velocity=0x00000000 * pnpq_ureg.k10cr1_velocity,
-        acceleration=0x000035B0 * pnpq_ureg.k10cr1_acceleration,
-        maximum_velocity=0x00CCCCCD * pnpq_ureg.k10cr1_velocity,
+        minimum_velocity=0x00000000,
+        acceleration=0x000035B0,
+        maximum_velocity=0x00CCCCCD,
     )
     assert msg.to_bytes() == bytes.fromhex(
         "1504 0E00 A2 01 0100 00000000 B0350000 CDCCCC00"

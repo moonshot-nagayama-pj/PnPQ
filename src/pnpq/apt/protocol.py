@@ -630,9 +630,9 @@ class AptMessageWithDataVelParams(AptMessageWithData):
     )
 
     chan_ident: ChanIdent
-    minimum_velocity: Quantity
-    acceleration: Quantity
-    maximum_velocity: Quantity
+    minimum_velocity: int
+    acceleration: int
+    maximum_velocity: int
 
     @classmethod
     def from_bytes(cls, raw: bytes) -> Self:
@@ -664,9 +664,9 @@ class AptMessageWithDataVelParams(AptMessageWithData):
             destination=Address(destination & 0x7F),
             source=Address(source),
             chan_ident=ChanIdent(chan_ident),
-            minimum_velocity=minimum_velocity * pnpq_ureg.k10cr1_velocity,
-            acceleration=acceleration * pnpq_ureg.k10cr1_acceleration,
-            maximum_velocity=maximum_velocity * pnpq_ureg.k10cr1_velocity,
+            minimum_velocity=minimum_velocity,
+            acceleration=acceleration,
+            maximum_velocity=maximum_velocity,
         )
 
     def to_bytes(self) -> bytes:
@@ -676,9 +676,9 @@ class AptMessageWithDataVelParams(AptMessageWithData):
             self.destination_serialization,
             self.source,
             self.chan_ident,
-            self.minimum_velocity.magnitude,
-            self.acceleration.magnitude,
-            self.maximum_velocity.magnitude,
+            self.minimum_velocity,
+            self.acceleration,
+            self.maximum_velocity,
         )
 
 
