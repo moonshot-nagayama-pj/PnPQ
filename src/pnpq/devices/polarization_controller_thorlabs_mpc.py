@@ -58,7 +58,7 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
     def get_status(
         self, chan_ident: ChanIdent
     ) -> AptMessage_MGMSG_MOT_GET_USTATUSUPDATE:
-        """Fetch the latest status of the device.
+        """Fetch the status of a single channel.
 
         :param chan_ident: The motor channel to fetch status for.
         :return: The message returned by the device, in
@@ -68,7 +68,7 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
 
     @abstractmethod
     def home(self, chan_ident: ChanIdent) -> None:
-        """Move the device to home position
+        """Move the device to home position.
 
         The home position can be customized using the
         :py:func:`set_params` function.
