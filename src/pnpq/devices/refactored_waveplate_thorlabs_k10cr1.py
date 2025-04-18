@@ -145,11 +145,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         )
 
     def move_absolute(self, position: Quantity) -> None:
-        """Moves the waveplate to a certain angle.
-
-        :param position: The angle to move to.
-        """
-
         absolute_distance = round(position.to("k10cr1_step").magnitude)
         self.set_channel_enabled(True)
         self.log.debug("Sending move_absolute command...")

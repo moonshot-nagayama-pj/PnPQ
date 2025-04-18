@@ -46,21 +46,45 @@ class PolarizationControllerParams(TypedDict):
 class AbstractPolarizationControllerThorlabsMPC(ABC):
     @abstractmethod
     def get_status_all(self) -> tuple[AptMessage_MGMSG_MOT_GET_USTATUSUPDATE, ...]:
-        pass
+        """Fetch the latest status of all channels on the device.
+
+        :return: A tuple of
+            :py:class:`AptMessage_MGMSG_MOT_GET_USTATUSUPDATE`,
+            one for each channel.
+
+        """
 
     @abstractmethod
     def get_status(
         self, chan_ident: ChanIdent
     ) -> AptMessage_MGMSG_MOT_GET_USTATUSUPDATE:
-        pass
+        """Fetch the status of a single channel.
+
+        :param chan_ident: The motor channel to fetch status for.
+        :return: The message returned by the device, in
+            :py:class:`AptMessage_MGMSG_MOT_GET_USTATUSUPDATE`
+
+        """
 
     @abstractmethod
     def home(self, chan_ident: ChanIdent) -> None:
-        pass
+        """Move the device to home position.
+
+        The home position can be customized using the
+        :py:func:`set_params` function.
+
+        :param chan_ident: The motor channel to set to home.
+
+        """
 
     @abstractmethod
     def identify(self, chan_ident: ChanIdent) -> None:
-        pass
+        """Identifies the device represented by this instance
+        by flashing the LED light on the device.
+
+        :param chan_ident: The motor channel to identify.
+
+        """
 
     @abstractmethod
     def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
@@ -78,15 +102,38 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
 
     @abstractmethod
     def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
-        pass
+        """Move the device to an absolute position.
+
+        :param chan_ident: The motor channel to move.
+        :param position: The angle to move the device. The unit must be
+            in ``mpc320_step`` or in a compatible angle unit. The move position
+            must be within 0 and 170 degrees (or equivalent).
+
+        """
 
     @abstractmethod
     def get_params(self) -> PolarizationControllerParams:
-        pass
+        """Get the parameters of the device represented by
+        this instance.
+
+        :return: The set of parameters in a dictionary defined
+            in :py:class:`PolarizationControllerParams`.
+
+        """
 
     @abstractmethod
     def set_channel_enabled(self, chan_ident: ChanIdent, enabled: bool) -> None:
-        pass
+        """Enables or disables the specified motor channel.
+        End users will not typically use this command.
+        Instead, commands that require a channel to be enabled
+        will automatically enable the channel before executing,
+        and disable the channel when complete.
+
+        :param chan_ident: The motor channel to enable.
+        :param enabled: Set to ``True`` to enable the channel,
+            or ``False`` to disable.
+
+        """
 
     @abstractmethod
     def set_params(
@@ -97,7 +144,24 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
         jog_step_2: None | Quantity = None,
         jog_step_3: None | Quantity = None,
     ) -> None:
-        pass
+        """Update the parameters of the device.
+
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
+
+        :param velocity: The rotational velocity. Applies to all channels.
+            Unit must be convertible to ``mpc320_velocity``.
+        :param home_position: The position where the device will
+            move to when the :py:func:`home` function is called.
+            Unit must be convertible to ``mpc320_step``.
+        :param jog_step_1: The amount which the jog function will
+            move for channel 1. Unit must be convertible to ``mpc320_step``.
+        :param jog_step_2: The amount which the jog function will
+            move for channel 2. Unit must be convertible to ``mpc320_step``.
+        :param jog_step_3: The amount which the jog function will
+            move for channel 3. Unit must be convertible to ``mpc320_step``.
+
+        """
 
 
 @dataclass(frozen=True, kw_only=True)
