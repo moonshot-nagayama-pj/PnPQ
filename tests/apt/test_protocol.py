@@ -781,6 +781,7 @@ def test_AptMessage_MGMSG_MOT_REQ_VELPARAMS_from_bytes() -> None:
     assert msg.message_id == 0x0414
     assert msg.source == 0x01
 
+
 def test_AptMessage_MGMSG_MOT_REQ_VELPARAMS_to_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_REQ_VELPARAMS(
         chan_ident=ChanIdent.CHANNEL_1,
