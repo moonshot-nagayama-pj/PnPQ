@@ -70,21 +70,6 @@ class AptMessageId(int, Enum):
 
 
 @enum.unique
-class NotImplementedAptMessageId(int, Enum):
-    """These message IDs are not implemented in the APT
-    specification. They are included here for completeness, but they
-    should not be used."""
-
-    MGMSG_MOT_SET_JOGPARAMS = 0x0416
-    MGMSG_MOT_REQ_JOGPARAMS = 0x0417
-    MGMSG_MOT_GET_JOGPARAMS = 0x0418
-
-    MGMSG_MOT_SET_HOMEPARAMS = 0x0440
-    MGMSG_MOT_REQ_HOMEPARAMS = 0x0441
-    MGMSG_MOT_GET_HOMEPARAMS = 0x0442
-
-
-@enum.unique
 class Address(int, Enum):
     BAY_0 = 0x21
     BAY_1 = 0x22
