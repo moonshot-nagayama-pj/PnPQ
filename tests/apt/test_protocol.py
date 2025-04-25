@@ -15,6 +15,8 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_GET_JOGPARAMS,
     AptMessage_MGMSG_MOT_GET_POSCOUNTER,
     AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
@@ -28,10 +30,15 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_JOG,
     AptMessage_MGMSG_MOT_MOVE_STOP,
     AptMessage_MGMSG_MOT_MOVE_STOPPED,
+    AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
     AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
     AptMessage_MGMSG_MOT_REQ_STATUSUPDATE,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_REQ_VELPARAMS,
     AptMessage_MGMSG_MOT_SET_EEPROMPARAMS,
+    AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_SET_JOGPARAMS,
     AptMessage_MGMSG_MOT_SET_POSCOUNTER,
     AptMessage_MGMSG_MOT_SET_VELPARAMS,
     AptMessage_MGMSG_POL_GET_PARAMS,
@@ -43,7 +50,10 @@ from pnpq.apt.protocol import (
     EnableState,
     FirmwareVersion,
     HardwareType,
+    HomeDirection,
     JogDirection,
+    JogMode,
+    LimitSwitch,
     Status,
     StopMode,
     UStatus,
@@ -761,6 +771,180 @@ def test_AptMessage_MGMSG_MOT_GET_VELPARAMS_to_bytes() -> None:
     )
     assert msg.to_bytes() == bytes.fromhex(
         "1504 0E00 A2 01 0100 00000000 B0350000 CDCCCC00"
+    )
+
+
+def test_AptMessage_MGMSG_MOT_REQ_VELPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_VELPARAMS.from_bytes(b"\x14\x04\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0414
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_REQ_VELPARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_VELPARAMS(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x14\x04\x01\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_SET_JOGPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_JOGPARAMS.from_bytes(
+        bytes.fromhex(
+            "1604 1600 A2 01 0100 0100 E8030000 00000000 B0350000 CDCCCC00 0200"
+        )
+    )
+
+    assert msg.chan_ident == ChanIdent.CHANNEL_1
+    assert msg.destination == 0x22
+    assert msg.message_id == 0x0416
+    assert msg.source == 0x01
+    assert msg.jog_mode == JogMode.CONTINUOUS
+    assert msg.jog_step_size == 1000
+    assert msg.jog_minimum_velocity == 0x00000000
+    assert msg.jog_acceleration == 0x000035B0
+    assert msg.jog_maximum_velocity == 0x00CCCCCD
+    assert msg.jog_stop_mode == StopMode.CONTROLLED
+
+
+def test_AptMessage_MGMSG_MOT_SET_JOGPARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_JOGPARAMS(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        jog_mode=JogMode.CONTINUOUS,
+        jog_step_size=1000,
+        jog_minimum_velocity=0x00000000,
+        jog_acceleration=0x000035B0,
+        jog_maximum_velocity=0x00CCCCCD,
+        jog_stop_mode=StopMode.CONTROLLED,
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "1604 1600 A2 01 0100 0100 E8030000 00000000 B0350000 CDCCCC00 0200"
+    )
+
+
+def test_AptMessage_MGMSG_MOT_GET_JOGPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_JOGPARAMS.from_bytes(
+        bytes.fromhex(
+            "1804 1600 A2 01 0100 0100 E8030000 00000000 B0350000 CDCCCC00 0200"
+        )
+    )
+
+    assert msg.chan_ident == ChanIdent.CHANNEL_1
+    assert msg.destination == 0x22
+    assert msg.message_id == 0x0418
+    assert msg.source == 0x01
+    assert msg.jog_mode == JogMode.CONTINUOUS
+    assert msg.jog_step_size == 1000
+    assert msg.jog_minimum_velocity == 0x00000000
+    assert msg.jog_acceleration == 0x000035B0
+    assert msg.jog_maximum_velocity == 0x00CCCCCD
+    assert msg.jog_stop_mode == StopMode.CONTROLLED
+
+
+def test_AptMessage_MGMSG_MOT_GET_JOGPARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_JOGPARAMS(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        jog_mode=JogMode.CONTINUOUS,
+        jog_step_size=1000,
+        jog_minimum_velocity=0x00000000,
+        jog_acceleration=0x000035B0,
+        jog_maximum_velocity=0x00CCCCCD,
+        jog_stop_mode=StopMode.CONTROLLED,
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "1804 1600 A2 01 0100 0100 E8030000 00000000 B0350000 CDCCCC00 0200"
+    )
+
+
+def test_AptMessage_MGMSG_MOT_REQ_JOGPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_JOGPARAMS.from_bytes(b"\x17\x04\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0417
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_REQ_JOGPARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_JOGPARAMS(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x17\x04\x01\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_SET_HOMEPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_HOMEPARAMS.from_bytes(
+        bytes.fromhex("4004 0E00 A201 0100 0000 0000 33333300 00000000")
+    )
+
+    assert msg.chan_ident == ChanIdent.CHANNEL_1
+    assert msg.destination == 0x22
+    assert msg.message_id == 0x0440
+    assert msg.source == 0x01
+    assert msg.home_direction == 0x00
+    assert msg.limit_switch == 0x00
+    assert msg.home_velocity == 0x00333333
+    assert msg.offset_distance == 0x00000000
+
+
+def test_AptMessage_MGMSG_MOT_SET_HOMEPARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_HOMEPARAMS(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        home_direction=HomeDirection.FORWARD_0,
+        limit_switch=LimitSwitch.NULL,
+        home_velocity=0x00333333,
+        offset_distance=0x00000000,
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "4004 0E00 A201 0100 0000 0000 33333300 00000000"
+    )
+
+
+def test_AptMessage_MGMSG_MOT_GET_HOMEPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_HOMEPARAMS.from_bytes(
+        bytes.fromhex("4204 0E00 A201 0100 0000 0000 33333300 00000000")
+    )
+
+    assert msg.chan_ident == ChanIdent.CHANNEL_1
+    assert msg.destination == 0x22
+    assert msg.message_id == 0x0442
+    assert msg.source == 0x01
+    assert msg.home_direction == 0x00
+    assert msg.limit_switch == 0x00
+    assert msg.home_velocity == 0x00333333
+    assert msg.offset_distance == 0x00000000
+
+
+def test_AptMessage_MGMSG_MOT_REQ_HOMEPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_HOMEPARAMS.from_bytes(b"\x41\x04\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0441
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_GET_HOMEPARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_HOMEPARAMS(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        home_direction=HomeDirection.FORWARD_0,
+        limit_switch=LimitSwitch.NULL,
+        home_velocity=0x00333333,
+        offset_distance=0x00000000,
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "4204 0E00 A201 0100 0000 0000 33333300 00000000"
     )
 
 

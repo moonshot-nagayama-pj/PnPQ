@@ -60,6 +60,14 @@ class AptMessageId(int, Enum):
 
     MGMSG_MOT_SET_EEPROMPARAMS = 0x04B9
 
+    MGMSG_MOT_SET_JOGPARAMS = 0x0416
+    MGMSG_MOT_REQ_JOGPARAMS = 0x0417
+    MGMSG_MOT_GET_JOGPARAMS = 0x0418
+
+    MGMSG_MOT_SET_HOMEPARAMS = 0x0440
+    MGMSG_MOT_REQ_HOMEPARAMS = 0x0441
+    MGMSG_MOT_GET_HOMEPARAMS = 0x0442
+
 
 @enum.unique
 class Address(int, Enum):
@@ -140,8 +148,16 @@ class EnableState(int, Enum):
 
 
 @enum.unique
+class JogMode(int, Enum):
+    """Used in MGMSG_MOT_SET_JOGPARAMS."""
+
+    CONTINUOUS = 0x01
+    SINGLE_STEP = 0x02
+
+
+@enum.unique
 class StopMode(int, Enum):
-    """Used in MSMSG_MOT_MOVE_STOP."""
+    """Used in MSMSG_MOT_MOVE_STOP, MGMSG_MOT_SET_JOGPARAMS"""
 
     IMMEDIATE = 0x01
     CONTROLLED = 0x02
@@ -153,6 +169,26 @@ class JogDirection(int, Enum):
 
     FORWARD = 0x01
     REVERSE = 0x02
+
+
+@enum.unique
+class HomeDirection(int, Enum):
+    """Used in MSMSG_MOT_SET_HOMEPARAMS, MSMSG_MOT_GET_HOMEPARAMS."""
+
+    FORWARD_0 = 0x00  # The example in the documentation shows zero as a possible value (unused), which we will take to be as forward.
+    FORWARD = 0x01
+    REVERSE = 0x02
+
+
+@enum.unique
+class LimitSwitch(int, Enum):
+    """The limit switch associated with the home position.
+    Used in MSMSG_MOT_SET_HOMEPARAMS, MSMSG_MOT_GET_HOMEPARAMS.
+    """
+
+    NULL = 0x00  # This value represents "not used" in the example documentation for MSMSG_MOT_SET_HOMEPARAMS.
+    HARDWARE_REVERSE = 0x01
+    HARDWARE_FORWARD = 0x04
 
 
 @enum.unique
@@ -679,6 +715,142 @@ class AptMessageWithDataVelParams(AptMessageWithData):
             self.minimum_velocity,
             self.acceleration,
             self.maximum_velocity,
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessageWithJogParams(AptMessageWithData):
+    data_length: ClassVar[int] = 22
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}2{ATS.WORD}4{ATS.LONG}{ATS.WORD}"
+    )
+
+    chan_ident: ChanIdent
+    jog_mode: JogMode
+    jog_step_size: int
+    jog_minimum_velocity: int
+    jog_acceleration: int
+    jog_maximum_velocity: int
+    jog_stop_mode: StopMode
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            chan_ident,
+            jog_mode,
+            jog_step_size,
+            jog_minimum_velocity,
+            jog_acceleration,
+            jog_maximum_velocity,
+            jog_stop_mode,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+
+        return cls(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            chan_ident=ChanIdent(chan_ident),
+            jog_mode=jog_mode,
+            jog_step_size=jog_step_size,
+            jog_minimum_velocity=jog_minimum_velocity,
+            jog_acceleration=jog_acceleration,
+            jog_maximum_velocity=jog_maximum_velocity,
+            jog_stop_mode=jog_stop_mode,
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.chan_ident,
+            self.jog_mode,
+            self.jog_step_size,
+            self.jog_minimum_velocity,
+            self.jog_acceleration,
+            self.jog_maximum_velocity,
+            self.jog_stop_mode,
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessageWithHomeParams(AptMessageWithData):
+    data_length: ClassVar[int] = 14
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}3{ATS.WORD}2{ATS.LONG}"
+    )
+
+    chan_ident: ChanIdent
+    home_direction: HomeDirection
+    limit_switch: LimitSwitch
+    home_velocity: int
+    offset_distance: int
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            chan_ident,
+            home_directiion,
+            limit_switch,
+            home_velocity,
+            offset_distance,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+
+        return cls(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            chan_ident=ChanIdent(chan_ident),
+            home_direction=HomeDirection(home_directiion),
+            limit_switch=LimitSwitch(limit_switch),
+            home_velocity=home_velocity,
+            offset_distance=offset_distance,
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.chan_ident,
+            self.home_direction,
+            self.limit_switch,
+            self.home_velocity,
+            self.offset_distance,
         )
 
 
@@ -1285,3 +1457,33 @@ class AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(AptMessageWithData):
             self.chan_ident,
             self.message_id_to_save,
         )
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_SET_JOGPARAMS(AptMessageWithJogParams):
+    message_id = AptMessageId.MGMSG_MOT_SET_JOGPARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_GET_JOGPARAMS(AptMessageWithJogParams):
+    message_id = AptMessageId.MGMSG_MOT_GET_JOGPARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_REQ_JOGPARAMS(AptMessageHeaderOnlyChanIdent):
+    message_id = AptMessageId.MGMSG_MOT_REQ_JOGPARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_SET_HOMEPARAMS(AptMessageWithHomeParams):
+    message_id = AptMessageId.MGMSG_MOT_SET_HOMEPARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_REQ_HOMEPARAMS(AptMessageHeaderOnlyChanIdent):
+    message_id = AptMessageId.MGMSG_MOT_REQ_HOMEPARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_GET_HOMEPARAMS(AptMessageWithHomeParams):
+    message_id = AptMessageId.MGMSG_MOT_GET_HOMEPARAMS
