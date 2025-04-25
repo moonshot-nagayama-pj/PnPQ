@@ -873,9 +873,7 @@ def test_AptMessage_MGMSG_MOT_REQ_JOGPARAMS_to_bytes() -> None:
 
 def test_AptMessage_MGMSG_MOT_SET_HOMEPARAMS_from_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_SET_HOMEPARAMS.from_bytes(
-        bytes.fromhex(
-            "4004 0E00 A201 0100 0000 0000 33333300 00000000"
-        )
+        bytes.fromhex("4004 0E00 A201 0100 0000 0000 33333300 00000000")
     )
 
     assert msg.chan_ident == ChanIdent.CHANNEL_1
@@ -886,6 +884,7 @@ def test_AptMessage_MGMSG_MOT_SET_HOMEPARAMS_from_bytes() -> None:
     assert msg.limit_switch == 0x00
     assert msg.home_velocity == 0x00333333
     assert msg.offset_distance == 0x00000000
+
 
 def test_AptMessage_MGMSG_MOT_SET_HOMEPARAMS_to_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_SET_HOMEPARAMS(
@@ -902,12 +901,9 @@ def test_AptMessage_MGMSG_MOT_SET_HOMEPARAMS_to_bytes() -> None:
     )
 
 
-
 def test_AptMessage_MGMSG_MOT_GET_HOMEPARAMS_from_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_GET_HOMEPARAMS.from_bytes(
-        bytes.fromhex(
-            "4204 0E00 A201 0100 0000 0000 33333300 00000000"
-        )
+        bytes.fromhex("4204 0E00 A201 0100 0000 0000 33333300 00000000")
     )
 
     assert msg.chan_ident == ChanIdent.CHANNEL_1
@@ -918,6 +914,7 @@ def test_AptMessage_MGMSG_MOT_GET_HOMEPARAMS_from_bytes() -> None:
     assert msg.limit_switch == 0x00
     assert msg.home_velocity == 0x00333333
     assert msg.offset_distance == 0x00000000
+
 
 def test_AptMessage_MGMSG_MOT_REQ_HOMEPARAMS_from_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_REQ_HOMEPARAMS.from_bytes(b"\x41\x04\x01\x00\x50\x01")
@@ -940,7 +937,6 @@ def test_AptMessage_MGMSG_MOT_GET_HOMEPARAMS_to_bytes() -> None:
     assert msg.to_bytes() == bytes.fromhex(
         "4204 0E00 A201 0100 0000 0000 33333300 00000000"
     )
-
 
 
 @pytest.mark.parametrize(

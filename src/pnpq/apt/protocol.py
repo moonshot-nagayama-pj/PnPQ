@@ -190,7 +190,7 @@ class JogDirection(int, Enum):
 class HomeDirection(int, Enum):
     """Used in MSMSG_MOT_SET_HOMEPARAMS, MSMSG_MOT_GET_HOMEPARAMS."""
 
-    FORWARD_0 = 0x00 # The example in the documentation shows zero as a possible value (unused), which we will take to be as forward.
+    FORWARD_0 = 0x00  # The example in the documentation shows zero as a possible value (unused), which we will take to be as forward.
     FORWARD = 0x01
     REVERSE = 0x02
 
@@ -200,7 +200,8 @@ class LimitSwitch(int, Enum):
     """The limit switch associated with the home position.
     Used in MSMSG_MOT_SET_HOMEPARAMS, MSMSG_MOT_GET_HOMEPARAMS.
     """
-    NULL = 0x00 # This enum is not used in the example documentation for MSMSG_MOT_SET_HOMEPARAMS.
+
+    NULL = 0x00  # This enum is not used in the example documentation for MSMSG_MOT_SET_HOMEPARAMS.
     HARDWARE_REVERSE = 0x01
     HARDWARE_FORWARD = 0x04
 
