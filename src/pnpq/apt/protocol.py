@@ -186,7 +186,7 @@ class LimitSwitch(int, Enum):
     Used in MSMSG_MOT_SET_HOMEPARAMS, MSMSG_MOT_GET_HOMEPARAMS.
     """
 
-    NULL = 0x00  # This enum is not used in the example documentation for MSMSG_MOT_SET_HOMEPARAMS.
+    NULL = 0x00  # This value represents "not used" in the example documentation for MSMSG_MOT_SET_HOMEPARAMS.
     HARDWARE_REVERSE = 0x01
     HARDWARE_FORWARD = 0x04
 
