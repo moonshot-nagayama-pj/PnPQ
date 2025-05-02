@@ -18,6 +18,9 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
     AptMessage_MGMSG_MOT_SET_VELPARAMS,
+    AptMessage_MGMSG_MOD_IDENTIFY,
+    AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_MOVE_HOMED,
     ChanIdent,
     EnableState,
 )
@@ -131,13 +134,22 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                     # should decrease this interval.
                     self.connection.tx_ordered_sender_awaiting_reply.wait(0.9)
 
+    def identify(self, chan_ident: ChanIdent) -> None:
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOD_IDENTIFY(
+                chan_ident=chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+
     def set_channel_enabled(self, enabled: bool) -> None:
         if enabled:
             chan_bitmask = self._chan_ident
         else:
             chan_bitmask = ChanIdent(0)
 
-        self.connection.send_message_no_reply(  # K10CR1 doesn't reply after setting chan enable
+        self.connection.send_message_no_reply(
             AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(
                 chan_ident=chan_bitmask,
                 enable_state=EnableState.CHANNEL_ENABLED,
@@ -145,6 +157,28 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 source=Address.HOST_CONTROLLER,
             ),
         )
+
+    def home(self, chan_ident: ChanIdent) -> None:
+        # self.set_channel_enabled(chan_ident, True)
+        self.set_channel_enabled(True)
+        start_time = time.perf_counter()
+        self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_HOME(
+                chan_ident=chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_HOMED)
+                and message.chan_ident == chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        elapsed_time = time.perf_counter() - start_time
+        self.log.debug("home command finished", elapsed_time=elapsed_time)
+        # self.set_channel_enabled(chan_ident, False)
+        self.set_channel_enabled(False)
 
     def move_absolute(self, position: Quantity) -> None:
         absolute_distance = round(position.to("kbd101_position").magnitude)
