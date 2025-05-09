@@ -1285,7 +1285,7 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
     AptMessageWithDataMotorStatus, AptMessage_MGMSG_MOT_MOVE_COMPLETED
 ):
     """
-    For the K10CR1, a full USTATUS data packet follows the main move completed message, so this message is used.
+    For the K10CR1 and KBD101, a full USTATUS data packet follows the main move completed message, so this message is used.
     """
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
@@ -1393,12 +1393,57 @@ class AptMessage_MGMSG_MOT_MOVE_JOG(AptMessageHeaderOnly):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessageHeaderOnlyChanIdent):
-    """Note that the APT documentation indicates that this should be
-    followed by a full USTATUS data packet. In reality, for the
-    MPC320, no data packet follows."""
+class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessage):
+    """
+    Note that the APT documentation indicates that this should be
+    followed by a full USTATUS data packet. So, two separate methods will be defined.
+    One for the full 20 byte message, and another for the 6 byte message.
+    """
+
+    data_length: ClassVar[int]
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_STOPPED":
+        length = len(raw)
+        if length == 6:
+            return AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES.from_bytes(raw)
+        if length == 20:
+            return AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES.from_bytes(raw)
+        raise ValueError(
+            f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES(
+    AptMessageHeaderOnlyChanIdent, AptMessage_MGMSG_MOT_MOVE_STOPPED
+):
+    """
+    For the MPC320, no data packet follows the main move completed message, so this message is used.
+    """
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_STOPPED
+    data_length: ClassVar[int] = 0
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        return super().from_bytes(raw)
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES(
+    AptMessageWithDataMotorStatus, AptMessage_MGMSG_MOT_MOVE_STOPPED
+):
+    """
+    For the K10CR1 and KBD101, a full USTATUS data packet follows the main move completed message, so this message is used.
+    """
+
+    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_STOPPED
+    data_length: ClassVar[int] = 14
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        return super().from_bytes(raw)
 
 
 @dataclass(frozen=True, kw_only=True)

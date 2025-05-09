@@ -21,6 +21,7 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
     ChanIdent,
     EnableState,
 )
@@ -45,6 +46,19 @@ class OpticalDelayLineVelocityParams(TypedDict):
 class AbstractOpticalDelayLineThorlabsKBD101(ABC):
 
     _chan_ident = ChanIdent.CHANNEL_1
+
+    @abstractmethod
+    def identify(self) -> None:
+        """Identifies the device represented by this instance
+        by flashing the light on the device.
+
+        :param chan_ident: The motor channel to identify.
+
+        """
+
+    @abstractmethod
+    def home(self) -> None:
+        """Move the device to home position."""
 
     @abstractmethod
     def move_absolute(self, position: Quantity) -> None:
@@ -162,19 +176,31 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         chan_ident = ChanIdent.CHANNEL_1
         self.set_channel_enabled(True)
         start_time = time.perf_counter()
-        self.connection.send_message_expect_reply(
+        result = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_HOME(
                 chan_ident=chan_ident,
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_MOVE_HOMED)
+                (
+                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_HOMED)
+                    or isinstance(message, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES)
+                )
                 and message.chan_ident == chan_ident
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
             ),
         )
+        # Sometimes the move stopped is received when interrupted
+        # by the user or when an invalid position is given
+        if result is AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES:
+            self.log.warning(
+                "move_absolute command failed",
+                error="Move stopped before completion",
+            )
+            raise RuntimeError("Move stopped before completion")
+
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("home command finished", elapsed_time=elapsed_time)
         self.set_channel_enabled(False)
@@ -185,7 +211,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
 
-        self.connection.send_message_expect_reply(
+        result = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(
                 chan_ident=self._chan_ident,
                 absolute_distance=absolute_distance,
@@ -193,14 +219,31 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                (
+                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                    or isinstance(message, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES)
+                )
                 and message.chan_ident == self._chan_ident
-                # Since the device is not very precise when moving, approximate position will be matched
-                and (message.position > absolute_distance - 1000 and message.position < absolute_distance + 1000)
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
+                and (  # If move is completed, check if the position is within 1mm of the target
+                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES)
+                    or (
+                        message.position > absolute_distance - 1000
+                        and message.position < absolute_distance + 1000
+                    )
+                )
             ),
         )
+        # Sometimes the move stopped is received when interrupted
+        # by the user or when an invalid position is given
+        if isinstance(result, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES):
+            self.log.warning(
+                "move_absolute command failed",
+                error="Move stopped before completion",
+            )
+            raise RuntimeError("Move stopped before completion")
+
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
 

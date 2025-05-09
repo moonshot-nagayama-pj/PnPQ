@@ -319,7 +319,10 @@ class AptConnection:
                 # subscribe immediately *after* sending the
                 # message. This is a little tricky to coordinate in
                 # the current architecture.
-                with timeout(100) as check_timeout, self.rx_subscribe() as receive_queue:
+                with (
+                    timeout(100) as check_timeout,
+                    self.rx_subscribe() as receive_queue,
+                ):
                     with self.tx_connection_lock:
                         self.connection.write(message.to_bytes())
                     # It doesn't seem to cause harm to let the sort of
