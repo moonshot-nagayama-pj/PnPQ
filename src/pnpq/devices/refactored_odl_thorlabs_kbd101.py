@@ -173,12 +173,11 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         )
 
     def home(self) -> None:
-        chan_ident = ChanIdent.CHANNEL_1
         self.set_channel_enabled(True)
         start_time = time.perf_counter()
         result = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_HOME(
-                chan_ident=chan_ident,
+                chan_ident=self._chan_ident,
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
             ),
@@ -187,7 +186,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                     isinstance(message, AptMessage_MGMSG_MOT_MOVE_HOMED)
                     or isinstance(message, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES)
                 )
-                and message.chan_ident == chan_ident
+                and message.chan_ident == self._chan_ident
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
             ),
