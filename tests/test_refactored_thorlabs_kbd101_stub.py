@@ -31,9 +31,9 @@ def test_move_absolute(stub_odl: AbstractOpticalDelayLineThorlabsKBD101) -> None
 def test_velparams(stub_odl: AbstractOpticalDelayLineThorlabsKBD101) -> None:
     # TODO: Temp value, should fetch one from real device to see the rough idea
     stub_odl.set_velparams(
-        minimum_velocity=1 * pnpq_ureg.kbd101_velocity,
-        acceleration=2 * pnpq_ureg.kbd101_acceleration,
-        maximum_velocity=3 * pnpq_ureg.kbd101_velocity,
+        minimum_velocity=0 * pnpq_ureg.kbd101_velocity,
+        acceleration=1374 * pnpq_ureg.kbd101_acceleration,
+        maximum_velocity=1342177 * pnpq_ureg.kbd101_velocity,
     )
 
     velparams = stub_odl.get_velparams()
