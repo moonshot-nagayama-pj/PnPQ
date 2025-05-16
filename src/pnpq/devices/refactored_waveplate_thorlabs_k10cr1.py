@@ -39,8 +39,6 @@ class WaveplateVelocityParams(TypedDict):
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
 
-    _chan_ident = ChanIdent.CHANNEL_1
-
     @abstractmethod
     def move_absolute(self, position: Quantity) -> None:
         """Move the waveplate to a certain angle.
@@ -71,6 +69,8 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
+    _chan_ident = ChanIdent.CHANNEL_1
+
     connection: AptConnection
 
     # Polling threads

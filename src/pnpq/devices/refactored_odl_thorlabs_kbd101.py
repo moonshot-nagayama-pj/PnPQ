@@ -44,8 +44,6 @@ class OpticalDelayLineVelocityParams(TypedDict):
 
 class AbstractOpticalDelayLineThorlabsKBD101(ABC):
 
-    _chan_ident = ChanIdent.CHANNEL_1
-
     @abstractmethod
     def identify(self) -> None:
         """Identifies the device represented by this instance
@@ -89,6 +87,8 @@ class AbstractOpticalDelayLineThorlabsKBD101(ABC):
 
 @dataclass(frozen=True, kw_only=True)
 class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
+    _chan_ident = ChanIdent.CHANNEL_1
+
     connection: AptConnection
 
     # Polling threads
@@ -232,13 +232,6 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 and message.chan_ident == self._chan_ident
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
-                and (  # If move is completed, check if the position is within 1mm of the target
-                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES)
-                    or (
-                        message.position > absolute_distance - 1000
-                        and message.position < absolute_distance + 1000
-                    )
-                )
             ),
         )
         # Sometimes the move stopped is received when interrupted
@@ -249,6 +242,15 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 error="Move stopped before completion",
             )
             raise RuntimeError("Move stopped before completion")
+
+        # If move is completed, check if the position is within 1mm of the target
+        assert isinstance(result, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+        if (
+            result.position > absolute_distance - 1000
+            and result.position < absolute_distance + 1000
+        ):
+            self.log.error("Invalid position was matched")
+            raise RuntimeError("Invalid position was matched")
 
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)

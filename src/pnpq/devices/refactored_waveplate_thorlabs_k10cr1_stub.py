@@ -15,6 +15,8 @@ from ..units import pnpq_ureg
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
+    _chan_ident = ChanIdent.CHANNEL_1
+
     log = structlog.get_logger()
 
     # Setup channels for the device

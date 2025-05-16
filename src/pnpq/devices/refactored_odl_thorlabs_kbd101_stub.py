@@ -14,6 +14,8 @@ from .refactored_odl_thorlabs_kbd101 import (
 
 @dataclass(frozen=True, kw_only=True)
 class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101):
+    _chan_ident = ChanIdent.CHANNEL_1
+
     log = structlog.get_logger()
 
     # Setup channels for the device
