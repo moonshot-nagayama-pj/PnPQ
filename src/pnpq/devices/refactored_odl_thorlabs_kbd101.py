@@ -11,17 +11,16 @@ from ..apt.connection import AptConnection
 from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
+    AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+    AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
     AptMessage_MGMSG_MOT_SET_VELPARAMS,
-    AptMessage_MGMSG_MOD_IDENTIFY,
-    AptMessage_MGMSG_MOT_MOVE_HOME,
-    AptMessage_MGMSG_MOT_MOVE_HOMED,
-    AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
     ChanIdent,
     EnableState,
 )
@@ -182,9 +181,12 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                (
-                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_HOMED)
-                    or isinstance(message, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES)
+                isinstance(
+                    message,
+                    (
+                        AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+                        AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
+                    ),
                 )
                 and message.chan_ident == self._chan_ident
                 and message.destination == Address.HOST_CONTROLLER
@@ -193,7 +195,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         )
         # Sometimes the move stopped is received when interrupted
         # by the user or when an invalid position is given
-        if result is AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES:
+        if isinstance(result, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES):
             self.log.warning(
                 "move_absolute command failed",
                 error="Move stopped before completion",
@@ -218,9 +220,12 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                (
-                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
-                    or isinstance(message, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES)
+                isinstance(
+                    message,
+                    (
+                        AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+                        AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
+                    ),
                 )
                 and message.chan_ident == self._chan_ident
                 and message.destination == Address.HOST_CONTROLLER

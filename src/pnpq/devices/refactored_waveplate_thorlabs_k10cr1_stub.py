@@ -56,7 +56,9 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         position_in_steps = position.to("k10cr1_step")
         self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
 
-        self.log.info(f"[Waveplate Stub] Channel {self._chan_ident} move to {position}")
+        self.log.info(
+            "[Waveplate Stub] Channel %s move to %s", self._chan_ident, position
+        )
 
     def get_velparams(self) -> WaveplateVelocityParams:
         return self.current_velocity_params
@@ -81,5 +83,5 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
                 Quantity, maximum_velocity.to("k10cr1_velocity")
             )
         self.log.info(
-            f"[K10CR1 Stub] Updated parameters: {self.current_velocity_params}"
+            "[K10CR1 Stub] Updated parameters: %s", self.current_velocity_params
         )

@@ -3,12 +3,14 @@ from typing import cast
 
 import structlog
 from pint import Quantity
-from ..apt.protocol import (
-    ChanIdent,
-)
-from ..units import pnpq_ureg
 
-from .refactored_odl_thorlabs_kbd101 import (OpticalDelayLineVelocityParams, AbstractOpticalDelayLineThorlabsKBD101)
+from ..apt.protocol import ChanIdent
+from ..units import pnpq_ureg
+from .refactored_odl_thorlabs_kbd101 import (
+    AbstractOpticalDelayLineThorlabsKBD101,
+    OpticalDelayLineVelocityParams,
+)
+
 
 @dataclass(frozen=True, kw_only=True)
 class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101):
@@ -47,12 +49,12 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
         )
 
     def identify(self) -> None:
-        self.log.info(f"[KBD101 Stub] Identify")
+        self.log.info("[KBD101 Stub] Identify")
 
     def home(self) -> None:
         # TODO: Update when set home params are implemented
-        home_position = 0 * pnpq_ureg.kbd101_step
-        self.log.info(f"[KBD101 Stub] Channel {self._chan_ident} home")
+        home_position = 0 * pnpq_ureg.kbd101_position
+        self.log.info("[KBD101 Stub] Channel %s home", self._chan_ident)
 
         self.move_absolute(home_position)
 
@@ -61,7 +63,9 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
         kbd101_position = position.to("kbd101_position")
         self.current_state[self._chan_ident] = cast(Quantity, kbd101_position)
 
-        self.log.info(f"[Waveplate Stub] Channel {self._chan_ident} move to {kbd101_position}")
+        self.log.info(
+            "[KBD101 Stub] Channel %s move to %s", self._chan_ident, kbd101_position
+        )
 
     def get_velparams(self) -> OpticalDelayLineVelocityParams:
         return self.current_velocity_params
@@ -86,5 +90,5 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
                 Quantity, maximum_velocity.to("kbd101_velocity")
             )
         self.log.info(
-            f"[KBD101 Stub] Updated parameters: {self.current_velocity_params}"
+            "[KBD101 Stub] Updated parameters: %s", self.current_velocity_params
         )
