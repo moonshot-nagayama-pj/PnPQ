@@ -1,25 +1,37 @@
-# pnpq
+# PnPQ
+
 Plug and Play with Quantum!
-PnPQ is a python library package for controlling optical devices in quantum networks
 
-## Prerequisites
+PnPQ is a Python library for controlling optical devices used in quantum network testbeds.
 
-- [uv](https://docs.astral.sh/uv/).
-- shellcheck
-- shfmt
+## Features
 
-## Test and Debug
+Provides a blocking API that allows for control of Thorlabs and OzOptics devices including:
+- Optical delay lines
+- Optical switches
+- Motorized polarization controllers
+- Motorized rotation mounts
 
-Since PnPQ is a device driver library, there is no main interface available to run.
+Uses the Python `pint` library to enable convertion between steps for each individual device (e.g., converting mpc320 steps into degrees).
 
-Instead, unit tests and hardware tests are available, and can be executed with: `pytest` and `pytest hardware_tests`.
+Unlike competing libraries, PnPQ's multithreaded architecture enables constant logging of status updates during usage, even while other commands are being sent.
 
-## Making Contributions
+High unit test coverage and complete type safety.
 
-Before you commit, ensure that `check.bash` does not output any error. This script checks for formatting errors as well as semantics in Python and shell scripts.
+## Documentation
 
-### Formatting
+The documentation can be seen at [https://moonshot-nagayama-pj.github.io/PnPQ/](https://moonshot-nagayama-pj.github.io/PnPQ/).
 
-For Python, Black will be used as the standard formatter for this repository. It is part of the recommended plugins, and configured as the default formatter in VSCode.
+## How to get started
 
-In VSCode, simply run `>Format Document` in the top menu bar with the Python file opened.
+Below is sample code that moves the paddles of a Thorlabs motorized polarization controller (mpc320) with serial number `123456789` to a position representing 160 degrees.
+```py
+  with AptConnection(serial_number="123456789") as connection:
+    device = PolarizationControllerThorlabsMPC320(connection=connection)
+    device.move_absolute(ChanIdent.CHANNEL_1, 160 * pnpq_ureg.degree)
+```
+The `with` syntax is necessary in order to properly open and close the connection object. More details can be seen in the documentation above.
+
+## Contributing
+
+Please see [`CONTRIBUTING.md`](https://github.com/moonshot-nagayama-pj/public-documents/blob/main/CODE_OF_CONDUCT.md).
