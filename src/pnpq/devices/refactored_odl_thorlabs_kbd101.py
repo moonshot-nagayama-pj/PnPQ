@@ -79,7 +79,9 @@ class AbstractOpticalDelayLineThorlabsKBD101(ABC):
     ) -> None:
         """Set velocity parameters on the device.
 
-        :param minimum_velocity: The minimum velocity.
+        :param minimum_velocity: The minimum velocity. According to the
+            documentation, this should always be 0. Therefore this parameter
+            can be left unused.
         :param acceleration: The acceleration.
         :param maximum_velocity: The maximum velocity.
         """
