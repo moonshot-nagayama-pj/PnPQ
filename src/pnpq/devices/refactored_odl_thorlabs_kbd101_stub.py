@@ -4,17 +4,16 @@ from typing import cast
 import structlog
 from pint import Quantity
 
-from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
-    AbstractWaveplateThorlabsK10CR1,
-    WaveplateVelocityParams,
-)
-
 from ..apt.protocol import ChanIdent
 from ..units import pnpq_ureg
+from .refactored_odl_thorlabs_kbd101 import (
+    AbstractOpticalDelayLineThorlabsKBD101,
+    OpticalDelayLineVelocityParams,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
-class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
+class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101):
     _chan_ident = ChanIdent.CHANNEL_1
 
     log = structlog.get_logger()
@@ -26,18 +25,18 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         ]
     )
 
-    current_velocity_params: WaveplateVelocityParams = field(init=False)
+    current_velocity_params: OpticalDelayLineVelocityParams = field(init=False)
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
 
     def __post_init__(self) -> None:
-        self.log.info("[Waveplate Stub] Initialized")
+        self.log.info("[KBD101 Stub] Initialized")
 
         object.__setattr__(
             self,
             "current_state",
             {
-                ChanIdent.CHANNEL_1: 0 * pnpq_ureg.k10cr1_step,
+                ChanIdent.CHANNEL_1: 0 * pnpq_ureg.kbd101_position,
             },
         )
 
@@ -45,24 +44,32 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
             self,
             "current_velocity_params",
             {
-                "minimum_velocity": 0 * pnpq_ureg.k10cr1_velocity,
-                "acceleration": 0 * pnpq_ureg.k10cr1_acceleration,
-                "maximum_velocity": 10
-                * pnpq_ureg.k10cr1_velocity,  # Default value set to 10 k10cr1_velocity based on expected operational range
+                "minimum_velocity": 0 * pnpq_ureg.kbd101_velocity,
+                "acceleration": 0 * pnpq_ureg.kbd101_acceleration,
+                "maximum_velocity": 10 * pnpq_ureg.kbd101_velocity,
             },
         )
 
+    def identify(self) -> None:
+        self.log.info("[KBD101 Stub] Identify")
+
+    def home(self) -> None:
+        # TODO: Update when set home params are implemented
+        home_position = 0 * pnpq_ureg.kbd101_position
+        self.log.info("[KBD101 Stub] Channel %s home", self._chan_ident)
+
+        self.move_absolute(home_position)
+
     def move_absolute(self, position: Quantity) -> None:
-        # Convert distance to K1CR10 steps
         # TODO: Check if input is too large or too small for the device
-        position_in_steps = position.to("k10cr1_step")
-        self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
+        kbd101_position = position.to("kbd101_position")
+        self.current_state[self._chan_ident] = cast(Quantity, kbd101_position)
 
         self.log.info(
-            "[Waveplate Stub] Channel %s move to %s", self._chan_ident, position
+            "[KBD101 Stub] Channel %s move to %s", self._chan_ident, kbd101_position
         )
 
-    def get_velparams(self) -> WaveplateVelocityParams:
+    def get_velparams(self) -> OpticalDelayLineVelocityParams:
         return self.current_velocity_params
 
     def set_velparams(
@@ -74,16 +81,16 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
         if minimum_velocity is not None:
             self.current_velocity_params["minimum_velocity"] = cast(
-                Quantity, minimum_velocity.to("k10cr1_velocity")
+                Quantity, minimum_velocity.to("kbd101_velocity")
             )
         if acceleration is not None:
             self.current_velocity_params["acceleration"] = cast(
-                Quantity, acceleration.to("k10cr1_acceleration")
+                Quantity, acceleration.to("kbd101_acceleration")
             )
         if maximum_velocity is not None:
             self.current_velocity_params["maximum_velocity"] = cast(
-                Quantity, maximum_velocity.to("k10cr1_velocity")
+                Quantity, maximum_velocity.to("kbd101_velocity")
             )
         self.log.info(
-            "[K10CR1 Stub] Updated parameters: %s", self.current_velocity_params
+            "[KBD101 Stub] Updated parameters: %s", self.current_velocity_params
         )

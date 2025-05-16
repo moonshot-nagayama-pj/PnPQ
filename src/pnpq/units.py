@@ -44,6 +44,7 @@ def get_unit_transformation(
 # Custom unit definitions for devices
 pnpq_ureg.define("mpc320_step = [dimension_mpc320_step]")
 pnpq_ureg.define("k10cr1_step = [dimension_k10cr1_step]")
+pnpq_ureg.define("kbd101_position = [dimension_kbd101_position]")
 
 # According to the protocol, velocity is expressed as a percentage of the maximum speed, ranging from 10% to 100%.
 # The maximum velocity is defined as 400 degrees per second, so we store velocity as a dimensionless proportion of this value.
@@ -248,6 +249,87 @@ thorlabs_context.add_transformation(
         input_to_output=lambda acceleration: (acceleration / 1502) * 136533,
         input_unit=cast(Unit, pnpq_ureg("k10cr1_acceleration")),
         output_unit=cast(Unit, pnpq_ureg("k10cr1_step / second ** 2")),
+        output_rounded=True,
+    ),
+)
+
+# Custom units for brushless DC controller (kbd101, with DDSM100 stage)
+# TODO: In the future, we would want this to support other stages
+KBD101_ENCCNT = 2000
+thorlabs_context.add_transformation(
+    "mm",
+    "kbd101_position",
+    get_unit_transformation(
+        input_to_output=lambda mm: mm * KBD101_ENCCNT,
+        input_unit=pnpq_ureg.mm,
+        output_unit=pnpq_ureg.kbd101_position,
+        output_rounded=True,
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "kbd101_position",
+    "mm",
+    get_unit_transformation(
+        input_to_output=lambda steps: steps / KBD101_ENCCNT,
+        input_unit=pnpq_ureg.kbd101_position,
+        output_unit=pnpq_ureg.mm,
+    ),
+)
+
+KBD101_CONVERSION_FACTOR_T = 102.4 * (10**-6)
+KBD101_VELOCITY_SCALE_FACTOR = KBD101_ENCCNT * KBD101_CONVERSION_FACTOR_T * 65536
+KBD101_ACCELERATION_SCALE_FACTOR = (
+    KBD101_ENCCNT * (KBD101_CONVERSION_FACTOR_T**2) * 65536
+)
+
+pnpq_ureg.define("kbd101_velocity = [dimension_kbd101_velocity]")
+pnpq_ureg.define("kbd101_acceleration = [dimension_kbd101_acceleration]")
+
+thorlabs_context.add_transformation(
+    "mm / second",
+    "kbd101_velocity",
+    get_unit_transformation(
+        input_to_output=lambda mm_per_second: mm_per_second
+        * KBD101_VELOCITY_SCALE_FACTOR,
+        input_unit=cast(Unit, pnpq_ureg("mm / second")),
+        output_unit=cast(Unit, pnpq_ureg("kbd101_velocity")),
+        output_rounded=True,
+    ),
+)
+
+
+thorlabs_context.add_transformation(
+    "kbd101_velocity",
+    "mm / second",
+    get_unit_transformation(
+        input_to_output=lambda velocity: velocity / KBD101_VELOCITY_SCALE_FACTOR,
+        input_unit=cast(Unit, pnpq_ureg("kbd101_velocity")),
+        output_unit=cast(Unit, pnpq_ureg("mm / second")),
+        output_rounded=True,
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "mm / second ** 2",
+    "kbd101_acceleration",
+    get_unit_transformation(
+        input_to_output=lambda mm_per_second_squared: mm_per_second_squared
+        * KBD101_ACCELERATION_SCALE_FACTOR,
+        input_unit=cast(Unit, pnpq_ureg("mm / second ** 2")),
+        output_unit=cast(Unit, pnpq_ureg("kbd101_acceleration")),
+        output_rounded=True,
+    ),
+)
+
+thorlabs_context.add_transformation(
+    "kbd101_acceleration",
+    "mm / second ** 2",
+    get_unit_transformation(
+        input_to_output=lambda acceleration: acceleration
+        / KBD101_ACCELERATION_SCALE_FACTOR,
+        input_unit=cast(Unit, pnpq_ureg("kbd101_acceleration")),
+        output_unit=cast(Unit, pnpq_ureg("mm / second ** 2")),
         output_rounded=True,
     ),
 )

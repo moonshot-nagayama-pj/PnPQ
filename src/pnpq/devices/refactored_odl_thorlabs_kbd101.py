@@ -11,11 +11,14 @@ from ..apt.connection import AptConnection
 from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
+    AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+    AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
     AptMessage_MGMSG_MOT_SET_VELPARAMS,
     ChanIdent,
@@ -24,20 +27,35 @@ from ..apt.protocol import (
 from ..units import pnpq_ureg
 
 
-class WaveplateVelocityParams(TypedDict):
+# TODO: This is set as a separate class for now.
+# If the Thorlabs waveplates use exactly the same logic, we might be able to combine them
+class OpticalDelayLineVelocityParams(TypedDict):
     """TypedDict for waveplate velocity parameters.
     Used in `get_velparams` method.
     """
 
-    #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
+    #: Dimensionality must be ([angle] / [time]) or kbd101_velocity
     minimum_velocity: Quantity
-    #: Dimensionality must be ([angle] / [time] ** 2) or k10cr1_acceleration
+    #: Dimensionality must be ([angle] / [time] ** 2) or kbd101_acceleration
     acceleration: Quantity
-    #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
+    #: Dimensionality must be ([angle] / [time]) or kbd101_velocity
     maximum_velocity: Quantity
 
 
-class AbstractWaveplateThorlabsK10CR1(ABC):
+class AbstractOpticalDelayLineThorlabsKBD101(ABC):
+
+    @abstractmethod
+    def identify(self) -> None:
+        """Identifies the device represented by this instance
+        by flashing the light on the device.
+
+        :param chan_ident: The motor channel to identify.
+
+        """
+
+    @abstractmethod
+    def home(self) -> None:
+        """Move the device to home position."""
 
     @abstractmethod
     def move_absolute(self, position: Quantity) -> None:
@@ -47,7 +65,7 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         """
 
     @abstractmethod
-    def get_velparams(self) -> WaveplateVelocityParams:
+    def get_velparams(self) -> OpticalDelayLineVelocityParams:
         """Request velocity parameters from the device."""
 
     @abstractmethod
@@ -68,7 +86,7 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
 
 
 @dataclass(frozen=True, kw_only=True)
-class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
+class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
     _chan_ident = ChanIdent.CHANNEL_1
 
     connection: AptConnection
@@ -131,13 +149,22 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                     # should decrease this interval.
                     self.connection.tx_ordered_sender_awaiting_reply.wait(0.9)
 
+    def identify(self) -> None:
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOD_IDENTIFY(
+                chan_ident=ChanIdent.CHANNEL_1,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+
     def set_channel_enabled(self, enabled: bool) -> None:
         if enabled:
             chan_bitmask = self._chan_ident
         else:
             chan_bitmask = ChanIdent(0)
 
-        self.connection.send_message_no_reply(  # K10CR1 doesn't reply after setting chan enable
+        self.connection.send_message_no_reply(
             AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(
                 chan_ident=chan_bitmask,
                 enable_state=EnableState.CHANNEL_ENABLED,
@@ -146,12 +173,48 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             ),
         )
 
+    def home(self) -> None:
+        self.set_channel_enabled(True)
+        start_time = time.perf_counter()
+        result = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_HOME(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(
+                    message,
+                    (
+                        AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+                        AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
+                    ),
+                )
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        # Sometimes the move stopped is received when interrupted
+        # by the user or when an invalid position is given
+        if isinstance(result, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES):
+            self.log.error(
+                "move_absolute command failed",
+                error="Move stopped before completion",
+            )
+            raise RuntimeError("Move stopped before completion")
+
+        elapsed_time = time.perf_counter() - start_time
+        self.log.debug("home command finished", elapsed_time=elapsed_time)
+        self.set_channel_enabled(False)
+
     def move_absolute(self, position: Quantity) -> None:
-        absolute_distance = round(position.to("k10cr1_step").magnitude)
+        absolute_distance = round(position.to("kbd101_position").magnitude)
         self.set_channel_enabled(True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
-        self.connection.send_message_expect_reply(
+
+        result = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(
                 chan_ident=self._chan_ident,
                 absolute_distance=absolute_distance,
@@ -159,19 +222,42 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                isinstance(
+                    message,
+                    (
+                        AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+                        AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
+                    ),
+                )
                 and message.chan_ident == self._chan_ident
-                and message.position == absolute_distance
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
             ),
         )
+        # Sometimes the move stopped is received when interrupted
+        # by the user or when an invalid position is given
+        if isinstance(result, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES):
+            self.log.error(
+                "move_absolute command failed",
+                error="Move stopped before completion",
+            )
+            raise RuntimeError("Move stopped before completion")
+
+        # If move is completed, check if the position is within 1mm of the target
+        assert isinstance(result, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+        if (
+            result.position > absolute_distance - 1000
+            and result.position < absolute_distance + 1000
+        ):
+            self.log.error("Invalid position was matched")
+            raise RuntimeError("Invalid position was matched")
+
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
 
         self.set_channel_enabled(False)
 
-    def get_velparams(self) -> WaveplateVelocityParams:
+    def get_velparams(self) -> OpticalDelayLineVelocityParams:
 
         params = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_REQ_VELPARAMS(
@@ -188,10 +274,10 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         )
         assert isinstance(params, AptMessage_MGMSG_MOT_GET_VELPARAMS)
 
-        result: WaveplateVelocityParams = {
-            "minimum_velocity": params.minimum_velocity * pnpq_ureg.k10cr1_velocity,
-            "acceleration": params.acceleration * pnpq_ureg.k10cr1_acceleration,
-            "maximum_velocity": params.maximum_velocity * pnpq_ureg.k10cr1_velocity,
+        result: OpticalDelayLineVelocityParams = {
+            "minimum_velocity": params.minimum_velocity * pnpq_ureg.kbd101_velocity,
+            "acceleration": params.acceleration * pnpq_ureg.kbd101_acceleration,
+            "maximum_velocity": params.maximum_velocity * pnpq_ureg.kbd101_velocity,
         }
         return result
 
@@ -207,15 +293,15 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
         if minimum_velocity is not None:
             params["minimum_velocity"] = cast(
-                Quantity, minimum_velocity.to("k10cr1_velocity")
+                Quantity, minimum_velocity.to("kbd101_velocity")
             )
         if acceleration is not None:
             params["acceleration"] = cast(
-                Quantity, acceleration.to("k10cr1_acceleration")
+                Quantity, acceleration.to("kbd101_acceleration")
             )
         if maximum_velocity is not None:
             params["maximum_velocity"] = cast(
-                Quantity, maximum_velocity.to("k10cr1_velocity")
+                Quantity, maximum_velocity.to("kbd101_velocity")
             )
 
         self.connection.send_message_no_reply(
@@ -224,13 +310,13 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
                 chan_ident=self._chan_ident,
                 minimum_velocity=params["minimum_velocity"]
-                .to(pnpq_ureg.k10cr1_velocity)
+                .to(pnpq_ureg.kbd101_velocity)
                 .magnitude,
                 acceleration=params["acceleration"]
-                .to(pnpq_ureg.k10cr1_acceleration)
+                .to(pnpq_ureg.kbd101_acceleration)
                 .magnitude,
                 maximum_velocity=params["maximum_velocity"]
-                .to(pnpq_ureg.k10cr1_velocity)
+                .to(pnpq_ureg.kbd101_velocity)
                 .magnitude,
             )
         )
