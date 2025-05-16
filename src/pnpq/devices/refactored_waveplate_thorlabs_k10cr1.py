@@ -102,6 +102,50 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         :param maximum_velocity: The maximum velocity.
         """
 
+    @abstractmethod
+    def get_jogparams(self) -> WaveplateJogParams:
+        """Request jog parameters from the device."""
+
+    @abstractmethod
+    def set_jogparams(
+        self,
+        jog_mode: None | JogMode = None,
+        jog_step_size: None | Quantity = None,
+        jog_minimum_velocity: None | Quantity = None,
+        jog_acceleration: None | Quantity = None,
+        jog_maximum_velocity: None | Quantity = None,
+        jog_stop_mode: None | StopMode = None,
+    ) -> None:
+        """Set jog parameters on the device.
+
+        :param jog_mode: The jog mode.
+        :param jog_step_size: The jog step size.
+        :param jog_minimum_velocity: The minimum velocity.
+        :param jog_acceleration: The acceleration.
+        :param jog_maximum_velocity: The maximum velocity.
+        :param jog_stop_mode: The stop mode.
+        """
+
+    @abstractmethod
+    def get_homeparams(self) -> WaveplateHomeParams:
+        """Request home parameters from the device."""
+
+    @abstractmethod
+    def set_homeparams(
+        self,
+        home_direction: None | HomeDirection = None,
+        limit_switch: None | LimitSwitch = None,
+        home_velocity: None | Quantity = None,
+        offset_distance: None | Quantity = None,
+    ) -> None:
+        """Set home parameters on the device.
+
+        :param home_direction: The home direction.
+        :param limit_switch: The limit switch.
+        :param home_velocity: The home velocity.
+        :param offset_distance: The offset distance.
+        """
+
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
@@ -289,9 +333,11 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         result: WaveplateJogParams = {
             "jog_mode": params.jog_mode,
             "jog_step_size": params.jog_step_size * pnpq_ureg.k10cr1_step,
-            "jog_minimum_velocity": params.jog_minimum_velocity * pnpq_ureg.k10cr1_velocity,
+            "jog_minimum_velocity": params.jog_minimum_velocity
+            * pnpq_ureg.k10cr1_velocity,
             "jog_acceleration": params.jog_acceleration * pnpq_ureg.k10cr1_acceleration,
-            "jog_maximum_velocity": params.jog_maximum_velocity * pnpq_ureg.k10cr1_velocity,
+            "jog_maximum_velocity": params.jog_maximum_velocity
+            * pnpq_ureg.k10cr1_velocity,
             "jog_stop_mode": params.jog_stop_mode,
         }
         return result
@@ -327,10 +373,18 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
                 chan_ident=self._chan_ident,
                 jog_mode=params["jog_mode"],
-                jog_step_size=params["jog_step_size"].to(pnpq_ureg.k10cr1_step).magnitude,
-                jog_minimum_velocity=params["jog_minimum_velocity"].to(pnpq_ureg.k10cr1_velocity).magnitude,
-                jog_acceleration=params["jog_acceleration"].to(pnpq_ureg.k10cr1_acceleration).magnitude,
-                jog_maximum_velocity=params["jog_maximum_velocity"].to(pnpq_ureg.k10cr1_velocity).magnitude,
+                jog_step_size=params["jog_step_size"]
+                .to(pnpq_ureg.k10cr1_step)
+                .magnitude,
+                jog_minimum_velocity=params["jog_minimum_velocity"]
+                .to(pnpq_ureg.k10cr1_velocity)
+                .magnitude,
+                jog_acceleration=params["jog_acceleration"]
+                .to(pnpq_ureg.k10cr1_acceleration)
+                .magnitude,
+                jog_maximum_velocity=params["jog_maximum_velocity"]
+                .to(pnpq_ureg.k10cr1_velocity)
+                .magnitude,
                 jog_stop_mode=params["jog_stop_mode"],
             )
         )
@@ -387,7 +441,11 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 chan_ident=self._chan_ident,
                 home_direction=params["home_direction"],
                 limit_switch=params["limit_switch"],
-                home_velocity=params["home_velocity"].to(pnpq_ureg.k10cr1_velocity).magnitude,
-                offset_distance=params["offset_distance"].to(pnpq_ureg.k10cr1_step).magnitude,
+                home_velocity=params["home_velocity"]
+                .to(pnpq_ureg.k10cr1_velocity)
+                .magnitude,
+                offset_distance=params["offset_distance"]
+                .to(pnpq_ureg.k10cr1_step)
+                .magnitude,
             )
         )
