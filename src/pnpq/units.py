@@ -254,7 +254,7 @@ thorlabs_context.add_transformation(
 )
 
 # Custom units for brushless DC controller (kbd101, with DDSM100 stage)
-# TODO: In the future, we would want this to support a wider sets of stages
+# TODO: In the future, we would want this to support other stages
 KBD101_ENCCNT = 2000
 thorlabs_context.add_transformation(
     "mm",

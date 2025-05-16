@@ -28,7 +28,7 @@ from ..units import pnpq_ureg
 
 
 # TODO: This is set as a separate class for now.
-# If this is to be the same as the waveplate, we can refactor it
+# If the Thorlabs waveplates use exactly the same logic, we might be able to combine them
 class OpticalDelayLineVelocityParams(TypedDict):
     """TypedDict for waveplate velocity parameters.
     Used in `get_velparams` method.
@@ -198,7 +198,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         # Sometimes the move stopped is received when interrupted
         # by the user or when an invalid position is given
         if isinstance(result, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES):
-            self.log.warning(
+            self.log.error(
                 "move_absolute command failed",
                 error="Move stopped before completion",
             )
@@ -244,7 +244,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         # Sometimes the move stopped is received when interrupted
         # by the user or when an invalid position is given
         if isinstance(result, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES):
-            self.log.warning(
+            self.log.error(
                 "move_absolute command failed",
                 error="Move stopped before completion",
             )
