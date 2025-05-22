@@ -35,3 +35,7 @@ The `with` syntax is necessary in order to properly open and close the connectio
 ## Contributing
 
 Please see [`CONTRIBUTING.md`](https://github.com/moonshot-nagayama-pj/public-documents/blob/main/CODE_OF_CONDUCT.md).
+
+## Getting help
+
+If you have a specific question about how to use our software that is not answered by the documentation, please feel free to create a GitHub issue.
