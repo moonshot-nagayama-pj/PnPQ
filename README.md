@@ -12,7 +12,7 @@ Provides a blocking API that allows for control of Thorlabs and OzOptics devices
 - Motorized polarization controllers
 - Motorized rotation mounts
 
-Uses the Python `pint` library to enable convertion between steps for each individual device (e.g., converting mpc320 steps into degrees).
+Uses [Pint](https://pint.readthedocs.io/en/stable/) to enable safe, transparent conversion between standard scientific units of measurement and each device's internal representation (e.g., converting motor steps into degrees).
 
 Unlike competing libraries, PnPQ's multithreaded architecture enables constant logging of status updates during usage, even while other commands are being sent.
 
