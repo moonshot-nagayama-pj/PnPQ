@@ -12,7 +12,7 @@ We run unit tests on all pull requests using simulated hardware. Use `pytest` to
 
 For ad-hoc testing of real hardware, use `pytest hardware_tests`.
 
-Before making a pull request, please run the check script `bin/check.bash`. This will run our static analysis tools and unit tests. This script is also run on each pull request.
+Before making a pull request, please be sure to run the script `bin/check.bash`. This will run our static analysis checks and unit tests, all of which must pass before a pull request will be accepted.
 
 ## Discussing and proposing changes
 
