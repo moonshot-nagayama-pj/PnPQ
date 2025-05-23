@@ -4,13 +4,21 @@ Thank you for your interest in contributing to our project. To make it as easy a
 
 ## Preparing your environment
 
-We use [EditorConfig](https://editorconfig.org/) to encourage consistency in basic formatting. Please use an editor which supports EditorConfig when working on files in this project.
+Please see (development-environment.md)[https://github.com/moonshot-nagayama-pj/public-documents/blob/main/engineering/development-environment.md] for more information.
+
+## Development
+
+We run unit tests on all pull requests using simulated hardware. Use `pytest` to run these unit tests.
+
+For ad-hoc testing of real hardware, use `pytest hardware_tests`.
+
+Before making a pull request, please be sure to run the script `bin/check.bash`. This will run our static analysis checks and unit tests, all of which must pass before a pull request will be accepted.
 
 ## Discussing and proposing changes
 
-If you would like to make a trivial change, or a change that has already been agreed to in discussions outside of GitHub, please create a pull request.
+To make a trivial change, or a change that has already been agreed to in discussions outside of GitHub, please create a pull request.
 
-If you believe that your change might need more discussion, please create a GitHub issue in this project before working on a pull request.
+If a change might need more discussion, please create a GitHub issue in this project before working on a pull request.
 
 ## Licensing and attribution
 
