@@ -2,22 +2,27 @@
 # Thorlanbs Oprical Switch 1x2 and 2x2 1310E driver
 #       OSW12-1310E & OSW22-1310E
 #
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
 import serial
 import serial.tools.list_ports
 from serial import Serial
-from abc import abstractmethod,ABC
-from dataclasses import dataclass
+
 
 class AbstractOpticalSwitchThorlabs1310E(ABC):
     @abstractmethod
-    def connect():
+    def connect(self) -> None:
         """Open a new connection."""
-    def bar():
+
+    def bar_state(self) -> None:
         """Set the switch to the bar state."""
-    def cross():
+
+    def cross_state(self) -> None:
         """Set the switch to the cross state."""
 
-@dataclass(frozen=True,kw_only=True)
+
+@dataclass(frozen=True, kw_only=True)
 class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
 
     def __init__(
@@ -53,8 +58,8 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
     #    if self.conn.is_open:
     #        self.conn.write(b'S ?\x0A')
 
-    def bar(self) -> None:
+    def bar_state(self) -> None:
         self.conn.write(b"S 1\x0A")
 
-    def cross(self) -> None:
+    def cross_state(self) -> None:
         self.conn.write(b"S 2\x0A")
