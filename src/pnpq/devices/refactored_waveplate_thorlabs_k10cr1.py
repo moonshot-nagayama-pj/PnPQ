@@ -449,3 +449,4 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 .magnitude,
             )
         )
+
