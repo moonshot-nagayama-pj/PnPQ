@@ -4,7 +4,7 @@ Thank you for your interest in contributing to our project. To make it as easy a
 
 ## Preparing your environment
 
-Please see (development-environment.md)[https://github.com/moonshot-nagayama-pj/public-documents/blob/main/engineering/development-environment.md] for more information.
+Please see [`development-environment.md`](https://github.com/moonshot-nagayama-pj/public-documents/blob/main/engineering/development-environment.md) for more information.
 
 ## Development
 
