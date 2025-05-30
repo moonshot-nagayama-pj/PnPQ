@@ -18,7 +18,6 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
-    AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_MOVE_JOG,
@@ -150,6 +149,7 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         :param home_velocity: The home velocity.
         :param offset_distance: The offset distance.
         """
+
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
@@ -473,7 +473,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("home command finished", elapsed_time=elapsed_time)
         self.set_channel_enabled(False)
-
 
     def jog(self, jog_direction: JogDirection) -> None:
         self.set_channel_enabled(True)
