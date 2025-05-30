@@ -20,6 +20,7 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
@@ -212,7 +213,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 isinstance(
                     message,
                     (
-                        AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+                        AptMessage_MGMSG_MOT_MOVE_HOMED,
                         AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
                     ),
                 )
