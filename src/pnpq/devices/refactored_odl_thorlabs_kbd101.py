@@ -17,20 +17,27 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
+    AptMessage_MGMSG_MOT_GET_JOGPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_MOVE_JOG,
     AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
+    AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
     AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_SET_VELPARAMS,
+    AptMessage_MGMSG_MOT_SET_JOGPARAMS,
     ChanIdent,
     EnableState,
     HomeDirection,
     LimitSwitch,
+    JogDirection,
+    JogMode,
+    StopMode,
 )
 from ..units import pnpq_ureg
 
@@ -49,6 +56,23 @@ class OpticalDelayLineVelocityParams(TypedDict):
     #: Dimensionality must be ([length] / [time]) or kbd101_velocity
     maximum_velocity: Quantity
 
+class WaveplateJogParams(TypedDict):
+    """TypedDict for waveplate jog parameters.
+    Used in the `get_jogparams` method.
+    """
+
+    #: Jog mode can be continuous jogging or single step jogging.
+    jog_mode: JogMode
+    #: Dimensionality must be [angle] or kbd101_position
+    jog_step_size: Quantity
+    #: Dimensionality must be ([angle] / [time]) or kbd101_velocity
+    jog_minimum_velocity: Quantity
+    #: Dimensionality must be ([angle] / [time] ** 2) or kbd101_acceleration
+    jog_acceleration: Quantity
+    #: Dimensionality must be ([angle] / [time]) or kbd101_velocity
+    jog_maximum_velocity: Quantity
+    #: Stop mode can be immediate (abrupt) stop or profiled stop (with controlled deceleration)
+    jog_stop_mode: StopMode
 
 class OpticalDelayLineHomeParams(TypedDict):
     """TypedDict for ODL home parameters.
@@ -288,17 +312,33 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
 
         # If move is completed, check if the position is within 1mm of the target
         assert isinstance(result, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
-        if (
+        if not (
             result.position > absolute_distance - 1000
             and result.position < absolute_distance + 1000
         ):
-            self.log.error("Invalid position was matched")
+            self.log.error("Invalid position was matched: %s (expected %s)", result.position, absolute_distance)
             raise RuntimeError("Invalid position was matched")
 
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
 
         self.set_channel_enabled(False)
+
+    def jog(self, jog_direction: JogDirection) -> None:
+        self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_JOG(
+                chan_ident=self._chan_ident,
+                jog_direction=jog_direction,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
 
     def get_velparams(self) -> OpticalDelayLineVelocityParams:
 
@@ -428,3 +468,78 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 .magnitude,
             )
         )
+
+    def get_jogparams(self) -> WaveplateJogParams:
+        params = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_REQ_JOGPARAMS(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_JOGPARAMS)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+
+        assert isinstance(params, AptMessage_MGMSG_MOT_GET_JOGPARAMS)
+
+        result: WaveplateJogParams = {
+            "jog_mode": params.jog_mode,
+            "jog_step_size": params.jog_step_size * pnpq_ureg.kbd101_position,
+            "jog_minimum_velocity": params.jog_minimum_velocity * pnpq_ureg.kbd101_velocity,
+            "jog_acceleration": params.jog_acceleration * pnpq_ureg.kbd101_acceleration,
+            "jog_maximum_velocity": params.jog_maximum_velocity * pnpq_ureg.kbd101_velocity,
+            "jog_stop_mode": params.jog_stop_mode,
+        }
+        return result
+
+    def set_jogparams(
+        self,
+        jog_mode: JogMode | None = None,
+        jog_step_size: Quantity | None = None,
+        jog_minimum_velocity: Quantity | None = None,
+        jog_acceleration: Quantity | None = None,
+        jog_maximum_velocity: Quantity | None = None,
+        jog_stop_mode: StopMode | None = None,
+    ) -> None:
+        # First get the current jog parameters
+        params = self.get_jogparams()
+
+        if jog_mode is not None:
+            params["jog_mode"] = jog_mode
+        if jog_step_size is not None:
+            params["jog_step_size"] = jog_step_size
+        if jog_minimum_velocity is not None:
+            params["jog_minimum_velocity"] = jog_minimum_velocity
+        if jog_acceleration is not None:
+            params["jog_acceleration"] = jog_acceleration
+        if jog_maximum_velocity is not None:
+            params["jog_maximum_velocity"] = jog_maximum_velocity
+        if jog_stop_mode is not None:
+            params["jog_stop_mode"] = jog_stop_mode
+
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOT_SET_JOGPARAMS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+                chan_ident=self._chan_ident,
+                jog_mode=params["jog_mode"],
+                jog_step_size=params["jog_step_size"]
+                .to(pnpq_ureg.kbd101_position)
+                .magnitude,
+                jog_minimum_velocity=params["jog_minimum_velocity"]
+                .to(pnpq_ureg.kbd101_velocity)
+                .magnitude,
+                jog_acceleration=params["jog_acceleration"]
+                .to(pnpq_ureg.kbd101_acceleration)
+                .magnitude,
+                jog_maximum_velocity=params["jog_maximum_velocity"]
+                .to(pnpq_ureg.kbd101_velocity)
+                .magnitude,
+                jog_stop_mode=params["jog_stop_mode"],
+            )
+        )
+        self.log.debug("set_jogparams", params=params)
