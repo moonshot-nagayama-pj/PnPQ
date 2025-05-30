@@ -18,6 +18,10 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES,
+    AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_MOVE_JOG,
     AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
     AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
@@ -27,6 +31,7 @@ from ..apt.protocol import (
     ChanIdent,
     EnableState,
     HomeDirection,
+    JogDirection,
     JogMode,
     LimitSwitch,
     StopMode,
@@ -145,7 +150,6 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         :param home_velocity: The home velocity.
         :param offset_distance: The offset distance.
         """
-
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
@@ -450,3 +454,41 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             )
         )
 
+    def home(self) -> None:
+        self.set_channel_enabled(True)
+        start_time = time.perf_counter()
+        self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_HOME(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_HOMED)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        elapsed_time = time.perf_counter() - start_time
+        self.log.debug("home command finished", elapsed_time=elapsed_time)
+        self.set_channel_enabled(False)
+
+
+    def jog(self, jog_direction: JogDirection) -> None:
+        self.set_channel_enabled(True)
+        self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_JOG(
+                chan_ident=self._chan_ident,
+                jog_direction=jog_direction,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        self.set_channel_enabled(False)
