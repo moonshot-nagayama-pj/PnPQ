@@ -14,17 +14,22 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
-    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
+    AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
+    AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_SET_VELPARAMS,
     ChanIdent,
     EnableState,
+    HomeDirection,
+    LimitSwitch,
 )
 from ..units import pnpq_ureg
 
@@ -32,16 +37,31 @@ from ..units import pnpq_ureg
 # TODO: This is set as a separate class for now.
 # If the Thorlabs waveplates use exactly the same logic, we might be able to combine them
 class OpticalDelayLineVelocityParams(TypedDict):
-    """TypedDict for waveplate velocity parameters.
+    """TypedDict for ODL velocity parameters.
     Used in `get_velparams` method.
     """
 
-    #: Dimensionality must be ([angle] / [time]) or kbd101_velocity
+    #: Dimensionality must be ([length] / [time]) or kbd101_velocity
     minimum_velocity: Quantity
-    #: Dimensionality must be ([angle] / [time] ** 2) or kbd101_acceleration
+    #: Dimensionality must be ([length] / [time] ** 2) or kbd101_acceleration
     acceleration: Quantity
-    #: Dimensionality must be ([angle] / [time]) or kbd101_velocity
+    #: Dimensionality must be ([length] / [time]) or kbd101_velocity
     maximum_velocity: Quantity
+
+
+class OpticalDelayLineHomeParams(TypedDict):
+    """TypedDict for ODL home parameters.
+    Used in the `get_homeparams` method.
+    """
+
+    #: The direction sense for a move to Home
+    home_direction: HomeDirection
+    #: The limit switch associated with the home position
+    limit_switch: LimitSwitch
+    #: Dimensionality must be ([length] / time) or kbd101_velocity
+    home_velocity: Quantity
+    #: Dimensionality must be [length] or kbd101_position
+    offset_distance: Quantity
 
 
 class AbstractOpticalDelayLineThorlabsKBD101(ABC):
@@ -339,6 +359,71 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 .magnitude,
                 maximum_velocity=params["maximum_velocity"]
                 .to(pnpq_ureg.kbd101_velocity)
+                .magnitude,
+            )
+        )
+
+    def get_homeparams(self) -> OpticalDelayLineHomeParams:
+        params = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_REQ_HOMEPARAMS(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_HOMEPARAMS)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        assert isinstance(params, AptMessage_MGMSG_MOT_GET_HOMEPARAMS)
+
+        result: OpticalDelayLineHomeParams = {
+            "home_direction": HomeDirection(params.home_direction),
+            "limit_switch": LimitSwitch(params.limit_switch),
+            "home_velocity": params.home_velocity * pnpq_ureg.kbd101_velocity,
+            "offset_distance": params.offset_distance * pnpq_ureg.kbd101_position,
+        }
+        return result
+
+    def set_homeparams(
+        self,
+        home_direction: None | HomeDirection = None,
+        limit_switch: None | LimitSwitch = None,
+        home_velocity: None | Quantity = None,
+        offset_distance: None | Quantity = None,
+    ) -> None:
+        # First get the current velocity parameters
+        params = self.get_homeparams()
+
+        if home_direction is not None:
+            params["home_direction"] = home_direction
+
+        if limit_switch is not None:
+            params["limit_switch"] = limit_switch
+
+        if home_velocity is not None:
+            params["home_velocity"] = cast(
+                Quantity, home_velocity.to("kbd101_velocity")
+            )
+        if offset_distance is not None:
+            params["offset_distance"] = cast(
+                Quantity, offset_distance.to("kbd101_position")
+            )
+
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOT_SET_HOMEPARAMS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+                chan_ident=self._chan_ident,
+                home_direction=params["home_direction"],
+                limit_switch=params["limit_switch"],
+                home_velocity=params["home_velocity"]
+                .to(pnpq_ureg.kbd101_velocity)
+                .magnitude,
+                offset_distance=params["offset_distance"]
+                .to(pnpq_ureg.kbd101_position)
                 .magnitude,
             )
         )
