@@ -15,9 +15,9 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_GET_JOGPARAMS,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
-    AptMessage_MGMSG_MOT_GET_JOGPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
@@ -25,18 +25,18 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_JOG,
     AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
-    AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
     AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
-    AptMessage_MGMSG_MOT_SET_VELPARAMS,
     AptMessage_MGMSG_MOT_SET_JOGPARAMS,
+    AptMessage_MGMSG_MOT_SET_VELPARAMS,
     ChanIdent,
     EnableState,
     HomeDirection,
-    LimitSwitch,
     JogDirection,
     JogMode,
+    LimitSwitch,
     StopMode,
 )
 from ..units import pnpq_ureg
@@ -56,23 +56,25 @@ class OpticalDelayLineVelocityParams(TypedDict):
     #: Dimensionality must be ([length] / [time]) or kbd101_velocity
     maximum_velocity: Quantity
 
-class WaveplateJogParams(TypedDict):
+
+class OpticalDelayLineJogParams(TypedDict):
     """TypedDict for waveplate jog parameters.
     Used in the `get_jogparams` method.
     """
 
     #: Jog mode can be continuous jogging or single step jogging.
     jog_mode: JogMode
-    #: Dimensionality must be [angle] or kbd101_position
+    #: Dimensionality must be [length] or kbd101_position
     jog_step_size: Quantity
-    #: Dimensionality must be ([angle] / [time]) or kbd101_velocity
+    #: Dimensionality must be ([length] / [time]) or kbd101_velocity
     jog_minimum_velocity: Quantity
-    #: Dimensionality must be ([angle] / [time] ** 2) or kbd101_acceleration
+    #: Dimensionality must be ([length] / [time] ** 2) or kbd101_acceleration
     jog_acceleration: Quantity
-    #: Dimensionality must be ([angle] / [time]) or kbd101_velocity
+    #: Dimensionality must be ([length] / [time]) or kbd101_velocity
     jog_maximum_velocity: Quantity
     #: Stop mode can be immediate (abrupt) stop or profiled stop (with controlled deceleration)
     jog_stop_mode: StopMode
+
 
 class OpticalDelayLineHomeParams(TypedDict):
     """TypedDict for ODL home parameters.
@@ -106,9 +108,16 @@ class AbstractOpticalDelayLineThorlabsKBD101(ABC):
 
     @abstractmethod
     def move_absolute(self, position: Quantity) -> None:
-        """Move the waveplate to a certain angle.
+        """Move the device to a certain angle.
 
         :param position: The angle to move to.
+        """
+
+    @abstractmethod
+    def jog(self, jog_direction: JogDirection) -> None:
+        """Jog the device in a certain direction.
+
+        :param jog_direction: The direction to jog in.
         """
 
     @abstractmethod
@@ -129,6 +138,50 @@ class AbstractOpticalDelayLineThorlabsKBD101(ABC):
             can be left unused.
         :param acceleration: The acceleration.
         :param maximum_velocity: The maximum velocity.
+        """
+
+    @abstractmethod
+    def get_homeparams(self) -> OpticalDelayLineHomeParams:
+        """Request home parameters from the device."""
+
+    @abstractmethod
+    def set_homeparams(
+        self,
+        home_direction: None | HomeDirection = None,
+        limit_switch: None | LimitSwitch = None,
+        home_velocity: None | Quantity = None,
+        offset_distance: None | Quantity = None,
+    ) -> None:
+        """Set home parameters on the device.
+
+        :param home_direction: The home direction.
+        :param limit_switch: The limit switch.
+        :param home_velocity: The home velocity.
+        :param offset_distance: The offset distance.
+        """
+
+    @abstractmethod
+    def get_jogparams(self) -> OpticalDelayLineJogParams:
+        """Request jog parameters from the device."""
+
+    @abstractmethod
+    def set_jogparams(
+        self,
+        jog_mode: JogMode | None = None,
+        jog_step_size: Quantity | None = None,
+        jog_minimum_velocity: Quantity | None = None,
+        jog_acceleration: Quantity | None = None,
+        jog_maximum_velocity: Quantity | None = None,
+        jog_stop_mode: StopMode | None = None,
+    ) -> None:
+        """Set jog parameters on the device.
+
+        :param jog_mode: The jog mode.
+        :param jog_step_size: The jog step size.
+        :param jog_minimum_velocity: The minimum velocity.
+        :param jog_acceleration: The acceleration.
+        :param jog_maximum_velocity: The maximum velocity.
+        :param jog_stop_mode: The stop mode.
         """
 
     @abstractmethod
@@ -316,7 +369,11 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
             result.position > absolute_distance - 1000
             and result.position < absolute_distance + 1000
         ):
-            self.log.error("Invalid position was matched: %s (expected %s)", result.position, absolute_distance)
+            self.log.error(
+                "Invalid position was matched: %s (expected %s)",
+                result.position,
+                absolute_distance,
+            )
             raise RuntimeError("Invalid position was matched")
 
         elapsed_time = time.perf_counter() - start_time
@@ -469,7 +526,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
             )
         )
 
-    def get_jogparams(self) -> WaveplateJogParams:
+    def get_jogparams(self) -> OpticalDelayLineJogParams:
         params = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_REQ_JOGPARAMS(
                 chan_ident=self._chan_ident,
@@ -486,12 +543,14 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
 
         assert isinstance(params, AptMessage_MGMSG_MOT_GET_JOGPARAMS)
 
-        result: WaveplateJogParams = {
+        result: OpticalDelayLineJogParams = {
             "jog_mode": params.jog_mode,
             "jog_step_size": params.jog_step_size * pnpq_ureg.kbd101_position,
-            "jog_minimum_velocity": params.jog_minimum_velocity * pnpq_ureg.kbd101_velocity,
+            "jog_minimum_velocity": params.jog_minimum_velocity
+            * pnpq_ureg.kbd101_velocity,
             "jog_acceleration": params.jog_acceleration * pnpq_ureg.kbd101_acceleration,
-            "jog_maximum_velocity": params.jog_maximum_velocity * pnpq_ureg.kbd101_velocity,
+            "jog_maximum_velocity": params.jog_maximum_velocity
+            * pnpq_ureg.kbd101_velocity,
             "jog_stop_mode": params.jog_stop_mode,
         }
         return result
