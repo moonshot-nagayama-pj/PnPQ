@@ -58,7 +58,7 @@ class OpticalDelayLineVelocityParams(TypedDict):
 
 
 class OpticalDelayLineJogParams(TypedDict):
-    """TypedDict for waveplate jog parameters.
+    """TypedDict for optical delay line jog parameters.
     Used in the `get_jogparams` method.
     """
 
@@ -81,7 +81,7 @@ class OpticalDelayLineHomeParams(TypedDict):
     Used in the `get_homeparams` method.
     """
 
-    #: The direction sense for a move to Home
+    # The direction to move while homing. For ODLs, this value is always positive (forward).
     home_direction: HomeDirection
     #: The limit switch associated with the home position
     limit_switch: LimitSwitch
@@ -108,7 +108,7 @@ class AbstractOpticalDelayLineThorlabsKBD101(ABC):
 
     @abstractmethod
     def move_absolute(self, position: Quantity) -> None:
-        """Move the device to a certain angle.
+        """Move the device to the specified position.
 
         :param position: The angle to move to.
         """
@@ -570,7 +570,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         if jog_mode is not None:
             params["jog_mode"] = jog_mode
         if jog_step_size is not None:
-            params["jog_step_size"] = jog_step_size
+            params["jog_step_size"] = jog_step_size.to(pnpq_ureg.kbd101_position)
         if jog_minimum_velocity is not None:
             params["jog_minimum_velocity"] = jog_minimum_velocity
         if jog_acceleration is not None:
