@@ -382,7 +382,8 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         self.set_channel_enabled(False)
 
     def jog(self, jog_direction: JogDirection) -> None:
-        self.connection.send_message_expect_reply(
+        # TODO: Validate this function when the device is in continuous jog mode
+        result = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_JOG(
                 chan_ident=self._chan_ident,
                 jog_direction=jog_direction,
@@ -390,12 +391,27 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                isinstance(
+                    message,
+                    (
+                        AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+                        AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
+                    ),
+                )
                 and message.chan_ident == self._chan_ident
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
             ),
         )
+
+        # Sometimes the move stopped is received when interrupted
+        # by the user or when an invalid position is given
+        if isinstance(result, AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES):
+            self.log.error(
+                "move_absolute command failed",
+                error="Move stopped before completion",
+            )
+            raise RuntimeError("Move stopped before completion")
 
     def get_velparams(self) -> OpticalDelayLineVelocityParams:
 
@@ -570,7 +586,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         if jog_mode is not None:
             params["jog_mode"] = jog_mode
         if jog_step_size is not None:
-            params["jog_step_size"] = jog_step_size.to(pnpq_ureg.kbd101_position)
+            params["jog_step_size"] = jog_step_size
         if jog_minimum_velocity is not None:
             params["jog_minimum_velocity"] = jog_minimum_velocity
         if jog_acceleration is not None:
