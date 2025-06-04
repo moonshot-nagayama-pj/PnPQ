@@ -4,28 +4,33 @@
 #
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
+
 
 import serial
 import serial.tools.list_ports
 from serial import Serial
 
+class State(Enum):
+    BAR = 1 # this might still trigger the pylint error
+    CROSS = 2
 
 class AbstractOpticalSwitchThorlabs1310E(ABC):
     @abstractmethod
+
     def connect(self) -> None:
         """Open a new connection."""
+    
+    @abstractmethod
 
-    def bar_state(self) -> None:
-        """Set the switch to the bar state."""
-
-    def cross_state(self) -> None:
-        """Set the switch to the cross state."""
+    def set_state(self,state:State) -> None:
+        """Set the switch to the specified state."""
 
 
 @dataclass(frozen=True, kw_only=True)
 class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
 
-    def __init__(
+    def __post_init__(
         self,
         serial_port: str | None = None,
         serial_number: str | None = None,
@@ -54,12 +59,9 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
     def connect(self) -> None:
         self.conn.open()
 
-    # def current_state(self):
-    #    if self.conn.is_open:
-    #        self.conn.write(b'S ?\x0A')
 
-    def bar_state(self) -> None:
-        self.conn.write(b"S 1\x0A")
-
-    def cross_state(self) -> None:
-        self.conn.write(b"S 2\x0A")
+    def set_state(self,state:State) -> None:
+        if state == State.BAR:
+            self.conn.write(b"S 1\x0A")
+        elif state == State.BAR:
+            self.conn.write(b"S 2\x0A")
