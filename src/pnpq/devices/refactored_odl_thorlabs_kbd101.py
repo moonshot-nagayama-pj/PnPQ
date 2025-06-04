@@ -383,6 +383,8 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
 
     def jog(self, jog_direction: JogDirection) -> None:
         # TODO: Validate this function when the device is in continuous jog mode
+        #
+        # TODO: Fuzzy-match the stop position in the same way move_absolute does
         result = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_JOG(
                 chan_ident=self._chan_ident,
@@ -518,13 +520,10 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
             params["limit_switch"] = limit_switch
 
         if home_velocity is not None:
-            params["home_velocity"] = cast(
-                Quantity, home_velocity.to("kbd101_velocity")
-            )
+            params["home_velocity"] = home_velocity
+
         if offset_distance is not None:
-            params["offset_distance"] = cast(
-                Quantity, offset_distance.to("kbd101_position")
-            )
+            params["offset_distance"] = offset_distance
 
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_MOT_SET_HOMEPARAMS(
