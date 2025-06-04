@@ -6,24 +6,23 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 
-
 import serial
 import serial.tools.list_ports
 from serial import Serial
 
+
 class State(Enum):
-    BAR = 1 # this might still trigger the pylint error
+    BAR = 1  # this might still trigger the pylint error
     CROSS = 2
+
 
 class AbstractOpticalSwitchThorlabs1310E(ABC):
     @abstractmethod
-
     def connect(self) -> None:
         """Open a new connection."""
-    
-    @abstractmethod
 
-    def set_state(self,state:State) -> None:
+    @abstractmethod
+    def set_state(self, state: State) -> None:
         """Set the switch to the specified state."""
 
 
@@ -58,7 +57,6 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
 
     def connect(self) -> None:
         self.conn.open()
-
 
     def set_state(self, state: State) -> None:
         if state == State.BAR:
