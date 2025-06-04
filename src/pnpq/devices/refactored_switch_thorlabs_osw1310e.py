@@ -1,5 +1,5 @@
 #
-# Thorlanbs Optical Switch 1x2 and 2x2 1310E driver
+# Thorlabs Optical Switch 1x2 and 2x2 1310E driver
 #       OSW12-1310E & OSW22-1310E
 #
 from abc import ABC, abstractmethod
