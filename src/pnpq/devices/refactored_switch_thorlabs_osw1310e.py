@@ -1,5 +1,5 @@
 #
-# Thorlanbs Oprical Switch 1x2 and 2x2 1310E driver
+# Thorlanbs Optical Switch 1x2 and 2x2 1310E driver
 #       OSW12-1310E & OSW22-1310E
 #
 from abc import ABC, abstractmethod
@@ -34,7 +34,7 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
         self,
         serial_port: str | None = None,
         serial_number: str | None = None,
-    ):
+    ) -> None:
         self.conn = Serial()
         self.conn.baudrate = 115200
         self.conn.bytesize = 8
@@ -60,8 +60,8 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
         self.conn.open()
 
 
-    def set_state(self,state:State) -> None:
+    def set_state(self, state: State) -> None:
         if state == State.BAR:
             self.conn.write(b"S 1\x0A")
-        elif state == State.BAR:
+        elif state == State.CROSS:
             self.conn.write(b"S 2\x0A")
