@@ -27,15 +27,22 @@ from .protocol import (
 
 @dataclass(frozen=True, kw_only=True)
 class AptConnection:
-    # Serial connection parameters
-    baudrate: int = 115200
-    bytesize: int = serial.EIGHTBITS
-    exclusive: bool = True
-    parity: str = serial.PARITY_NONE
-    rtscts: bool = True
-    stopbits: int = serial.STOPBITS_ONE
-    timeout: None | int = (
-        None  # None means wait forever, until the requested number of bytes are received
+    # Required
+    serial_number: str
+
+    # All other properties are optional.
+
+    # Serial connection parameters. These defaults are used by all
+    # known Thorlabs devices that implement the APT protocol and do
+    # not need to be changed.
+    baudrate: int = field(default=115200)
+    bytesize: int = field(default=serial.EIGHTBITS)
+    exclusive: bool = field(default=True)
+    parity: str = field(default=serial.PARITY_NONE)
+    rtscts: bool = field(default=True)
+    stopbits: int = field(default=serial.STOPBITS_ONE)
+    timeout: None | int = field(
+        default=None  # None means wait forever, until the requested number of bytes are received
     )
 
     connection: Serial = field(init=False)
@@ -75,9 +82,6 @@ class AptConnection:
     log = structlog.get_logger()
 
     stop_event: threading.Event = field(default_factory=threading.Event)
-
-    # Required inputs are defined below.
-    serial_number: str
 
     def __enter__(self) -> "AptConnection":
         self.open()

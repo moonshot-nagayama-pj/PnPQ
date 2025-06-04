@@ -19,13 +19,6 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
     log = structlog.get_logger()
 
-    # Setup channels for the device
-    available_channels: frozenset[ChanIdent] = frozenset(
-        [
-            ChanIdent.CHANNEL_1,
-        ]
-    )
-
     current_velocity_params: WaveplateVelocityParams = field(init=False)
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
@@ -37,7 +30,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
             self,
             "current_state",
             {
-                ChanIdent.CHANNEL_1: 0 * pnpq_ureg.k10cr1_step,
+                self._chan_ident: 0 * pnpq_ureg.k10cr1_step,
             },
         )
 

@@ -79,9 +79,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
     log = structlog.get_logger()
 
-    # Setup channels for the device
-    available_channels: frozenset[ChanIdent] = frozenset([ChanIdent.CHANNEL_1])
-
     def __post_init__(self) -> None:
         # Start polling thread
         object.__setattr__(
