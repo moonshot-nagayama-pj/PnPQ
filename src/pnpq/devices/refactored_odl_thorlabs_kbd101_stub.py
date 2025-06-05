@@ -32,13 +32,6 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
 
     log = structlog.get_logger()
 
-    # Setup channels for the device
-    available_channels: frozenset[ChanIdent] = frozenset(
-        [
-            ChanIdent.CHANNEL_1,
-        ]
-    )
-
     current_velocity_params: OpticalDelayLineVelocityParams = field(init=False)
     current_home_params: OpticalDelayLineHomeParams = field(init=False)
     current_jog_params: OpticalDelayLineJogParams = field(init=False)
