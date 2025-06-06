@@ -4,9 +4,10 @@ from pnpq.devices.polarization_controller_thorlabs_mpc_stub import PolarizationC
 from pnpq.units import pnpq_ureg
 from pnpq.apt.connection import AptConnection
 
-channel = AptConnection(serial_number="CKBEe12CJ06")
+channel = AptConnection(serial_number="327234-01")
 
 
+channel.open()
 odl = OpticalDelayLineThorlabsKBD101(connection=channel)
 
 position = 25 * pnpq_ureg.millimeter
@@ -14,3 +15,5 @@ position = 25 * pnpq_ureg.millimeter
 print(position)
 
 odl.move_absolute(position=position)
+
+channel.close()
