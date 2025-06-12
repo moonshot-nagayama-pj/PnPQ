@@ -1,6 +1,13 @@
 import pytest
 
-from pnpq.apt.protocol import ChanIdent, HomeDirection, JogMode, LimitSwitch, StopMode
+from pnpq.apt.protocol import (
+    ChanIdent,
+    HomeDirection,
+    JogDirection,
+    JogMode,
+    LimitSwitch,
+    StopMode,
+)
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
     AbstractWaveplateThorlabsK10CR1,
 )
@@ -26,6 +33,24 @@ def test_move_absolute(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
     waveplate_position = stub_waveplate.current_state[ChanIdent.CHANNEL_1]  # type: ignore
 
     assert waveplate_position.to("degree").magnitude == pytest.approx(45)
+
+
+def test_jog(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
+    position = 100 * pnpq_ureg.k10cr1_step
+    stub_waveplate.move_absolute(position)
+    # Using default jog step of 10 steps
+    stub_waveplate.jog(JogDirection.FORWARD)
+
+    # Currently throws a mypy error because current_state is not in the AbstractWaveplateThorlabsK10CR1.
+    # TODO: Replace with get_params when implemented.
+    waveplate_position = stub_waveplate.current_state[ChanIdent.CHANNEL_1]  # type: ignore
+
+    assert waveplate_position.to("k10cr1_step").magnitude == 110
+    stub_waveplate.jog(JogDirection.REVERSE)
+
+    # Look above
+    waveplate_position = stub_waveplate.current_state[ChanIdent.CHANNEL_1]  # type: ignore
+    assert waveplate_position.magnitude == 100
 
 
 def test_velparams(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:

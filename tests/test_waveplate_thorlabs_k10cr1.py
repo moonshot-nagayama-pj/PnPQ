@@ -5,9 +5,11 @@ from pnpq.apt.connection import AptConnection
 from pnpq.apt.protocol import (
     Address,
     AptMessage,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     ChanIdent,
+    Status,
     UStatus,
 )
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
@@ -44,7 +46,19 @@ def test_move_absolute() -> None:
 
             assert match_reply_callback(reply_message)
 
-    connection.send_message_expect_reply.side_effect = mock_send_message_expect_reply
+    ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
+        chan_ident=ChanIdent(1),
+        destination=Address.HOST_CONTROLLER,
+        source=Address.GENERIC_USB,
+        enc_count=0,
+        position=0,
+        status=Status(INMOTIONCCW=True, INMOTIONCW=True, HOMED=True),
+    )
+
+    connection.send_message_expect_reply.side_effect = [
+        ustatus_message,
+        mock_send_message_expect_reply,
+    ]
     connection.tx_ordered_sender_awaiting_reply = Mock()
     connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
 
@@ -52,5 +66,7 @@ def test_move_absolute() -> None:
 
     controller.move_absolute(10 * pnpq_ureg.k10cr1_step)
 
-    # One call for moving the motor. Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    assert connection.send_message_expect_reply.call_count == 1
+    # One call for moving the motor.
+    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
+    # Second call for getting the status update to check if the device is homed
+    assert connection.send_message_expect_reply.call_count == 2

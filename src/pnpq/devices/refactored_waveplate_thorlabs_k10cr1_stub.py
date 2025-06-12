@@ -11,7 +11,14 @@ from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
     WaveplateVelocityParams,
 )
 
-from ..apt.protocol import ChanIdent, HomeDirection, JogMode, LimitSwitch, StopMode
+from ..apt.protocol import (
+    ChanIdent,
+    HomeDirection,
+    JogDirection,
+    JogMode,
+    LimitSwitch,
+    StopMode,
+)
 from ..units import pnpq_ureg
 
 
@@ -29,6 +36,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
     current_velocity_params: WaveplateVelocityParams = field(init=False)
     current_jog_params: WaveplateJogParams = field(init=False)
     current_home_params: WaveplateHomeParams = field(init=False)
+    homed: bool = field(default=False, init=False)
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
 
@@ -59,7 +67,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
             "current_jog_params",
             {
                 "jog_mode": JogMode.SINGLE_STEP,
-                "jog_step_size": 1 * pnpq_ureg.k10cr1_step,
+                "jog_step_size": 10 * pnpq_ureg.k10cr1_step,
                 "jog_minimum_velocity": 0 * pnpq_ureg.k10cr1_velocity,
                 "jog_acceleration": 0 * pnpq_ureg.k10cr1_acceleration,
                 "jog_maximum_velocity": 10
@@ -77,6 +85,12 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
                 "home_velocity": 0 * pnpq_ureg.k10cr1_velocity,
                 "offset_distance": 0 * pnpq_ureg.k10cr1_step,
             },
+        )
+
+        object.__setattr__(
+            self,
+            "homed",
+            True,
         )
 
     def move_absolute(self, position: Quantity) -> None:
@@ -176,3 +190,39 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
         # TODO: Remove f string
         self.log.info(f"[K10CR1 Stub] Updated parameters: {self.current_home_params}")
+
+    def jog(self, jog_direction: JogDirection) -> None:
+
+        jog_value = self.current_jog_params["jog_step_size"]
+        current_value = self.current_state[self._chan_ident].to("k10cr1_step").magnitude
+        jog_value_magnitude = jog_value.to("k10cr1_step").magnitude
+
+        if jog_direction == JogDirection.FORWARD:
+            new_value_magnitude = current_value + jog_value_magnitude
+        else:  # Reverse
+            new_value_magnitude = current_value - jog_value_magnitude
+
+        new_value = new_value_magnitude * pnpq_ureg.k10cr1_step
+        self.current_state[self._chan_ident] = new_value
+
+        self.log.info(
+            f"[Waveplate Stub] Channel {self._chan_ident} jog {jog_direction}"
+        )
+
+    def home(self) -> None:
+        object.__setattr__(
+            self,
+            "homed",
+            True,
+        )
+        self.current_state[self._chan_ident] = 0 * pnpq_ureg.k10cr1_step
+
+        # TODO: Remove f string
+        self.log.info(f"[Waveplate Stub] Channel {self._chan_ident} home")
+
+    def is_homed(self) -> bool:
+        return self.homed
+
+    def identify(self) -> None:
+        # Do nothing for the stub
+        pass

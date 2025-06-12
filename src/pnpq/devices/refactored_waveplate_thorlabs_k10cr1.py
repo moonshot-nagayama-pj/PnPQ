@@ -11,10 +11,12 @@ from ..apt.connection import AptConnection
 from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
+    AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_GET_JOGPARAMS,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
@@ -23,6 +25,7 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_JOG,
     AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
     AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
+    AptMessage_MGMSG_MOT_REQ_STATUSUPDATE,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
     AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_SET_JOGPARAMS,
@@ -150,6 +153,29 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         :param offset_distance: The offset distance.
         """
 
+    @abstractmethod
+    def jog(self, jog_direction: JogDirection) -> None:
+        """Jog the waveplate in a certain direction.
+
+        :param jog_direction: The direction to jog in.
+        """
+
+    @abstractmethod
+    def home(self) -> None:
+        """Move the waveplate to its home position."""
+
+    @abstractmethod
+    def identify(self) -> None:
+        """Identify the device by blinking its LED."""
+
+    @abstractmethod
+    def is_homed(self) -> bool:
+        """Check if the device is homed.
+        Sends the REQ_STATUSUPDATE message and checks the HOMED status bit.
+
+        Returns True if the device is homed, False otherwise.
+        """
+
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
@@ -175,12 +201,38 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         self.tx_poller_thread.start()
 
         # Send autoupdate
-        self.connection.send_message_no_reply(
+        status_message = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_HW_START_UPDATEMSGS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
-            )
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
         )
+        print("STATUSMESSAGE", type(status_message))
+        assert isinstance(status_message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+        homed = status_message.status.HOMED
+
+        if not homed:
+            # Home the device on startup
+            self.log.info(
+                "[Waveplate] Device not homed. Homing the device on startup..."
+            )
+
+            # Set home velocity to 500 times the default amount
+            # because the default amount is really slow
+            self.set_homeparams(
+                home_velocity=73291 * pnpq_ureg.k10cr1_velocity * 500,
+            )
+            time.sleep(1)
+            self.home()
+        else:
+            self.log.info(
+                "[Waveplate] Device is already homed. No need to home on startup."
+            )
 
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
@@ -227,6 +279,16 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
         )
+
+    def identify(self) -> None:
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOD_IDENTIFY(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+        time.sleep(5)  # Allow time for the identify command to complete
 
     def move_absolute(self, position: Quantity) -> None:
         absolute_distance = round(position.to("k10cr1_step").magnitude)
@@ -491,3 +553,24 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             ),
         )
         self.set_channel_enabled(False)
+
+    def is_homed(self) -> bool:
+
+        # Maybe possible to wait for status update instead?
+        # Because autoupdate messages are sent every second
+        # Also, according to the protocol, K10CR1 should not
+        # support REQ_STATUSUPDATE, but upon testing, it does.
+        status_message = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_REQ_STATUSUPDATE(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        assert isinstance(status_message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+        return status_message.status.HOMED

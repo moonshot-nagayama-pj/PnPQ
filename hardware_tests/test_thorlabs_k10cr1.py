@@ -1,3 +1,4 @@
+import time
 from typing import Generator
 
 import pytest
@@ -15,6 +16,27 @@ from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import WaveplateThorlabsK
 from pnpq.units import pnpq_ureg
 
 
+def test_connection() -> None:
+    with AptConnection(serial_number="55409764") as connection:
+        assert not connection.is_closed()
+        time.sleep(1)
+
+        device = WaveplateThorlabsK10CR1(connection=connection)
+        time.sleep(1)
+
+        device.move_absolute(0 * pnpq_ureg.degree)
+        time.sleep(1)
+
+    assert connection.is_closed()
+
+
+def test_homed_on_startup() -> None:
+    # Plug and replug the device before running this test.
+    with AptConnection(serial_number="55409764") as connection:
+        device = WaveplateThorlabsK10CR1(connection=connection)
+        assert device.is_homed()
+
+
 @pytest.fixture(name="device", scope="function")
 def device_fixture() -> Generator[WaveplateThorlabsK10CR1]:
     with AptConnection(serial_number="55409764") as connection:
@@ -24,6 +46,10 @@ def device_fixture() -> Generator[WaveplateThorlabsK10CR1]:
 def test_move_absolute(device: WaveplateThorlabsK10CR1) -> None:
     device.move_absolute(0 * pnpq_ureg.degree)
     device.move_absolute(24575940 * pnpq_ureg.k10cr1_steps)
+
+
+def test_identify(device: WaveplateThorlabsK10CR1) -> None:
+    device.identify()
 
 
 def test_jogparams(device: WaveplateThorlabsK10CR1) -> None:
@@ -53,19 +79,29 @@ def test_jogparams(device: WaveplateThorlabsK10CR1) -> None:
     assert jogparams["jog_stop_mode"] == StopMode.IMMEDIATE
 
 
+def test_velparams(device: WaveplateThorlabsK10CR1) -> None:
+
+    velparams = device.get_velparams()
+    logger = structlog.get_logger()
+    logger.info("Velocity parameters test", velparams=velparams)
+
+
 def test_homeparams(device: WaveplateThorlabsK10CR1) -> None:
+
     device.set_homeparams(
-        home_direction=HomeDirection.FORWARD_0,
-        limit_switch=LimitSwitch.HARDWARE_FORWARD,
-        home_velocity=1000000 * pnpq_ureg.k10cr1_velocity,
+        home_direction=HomeDirection.REVERSE,
+        limit_switch=LimitSwitch.HARDWARE_REVERSE,
+        home_velocity=73291 * pnpq_ureg.k10cr1_velocity * 500,
         offset_distance=2 * pnpq_ureg.k10cr1_step,
     )
 
+    time.sleep(1)
+
     homeparams = device.get_homeparams()
 
-    assert homeparams["home_direction"] == HomeDirection.FORWARD_0
-    assert homeparams["limit_switch"] == LimitSwitch.HARDWARE_FORWARD
-    assert homeparams["home_velocity"].to("k10cr1_velocity").magnitude == 1000000
+    assert homeparams["home_direction"] == HomeDirection.REVERSE
+    assert homeparams["limit_switch"] == LimitSwitch.HARDWARE_REVERSE
+    assert homeparams["home_velocity"].to("k10cr1_velocity").magnitude == 73286848
     assert homeparams["offset_distance"].to("k10cr1_step").magnitude == 2
 
     logger = structlog.get_logger()
