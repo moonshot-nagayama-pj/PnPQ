@@ -31,7 +31,7 @@ def test_connection() -> None:
 
 
 def test_homed_on_startup() -> None:
-    # Plug and replug the device before running this test.
+    # Unplug and replug the device before running this test.
     with AptConnection(serial_number="55409764") as connection:
         device = WaveplateThorlabsK10CR1(connection=connection)
         assert device.is_homed()
