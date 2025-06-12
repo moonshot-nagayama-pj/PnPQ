@@ -24,14 +24,9 @@ from ..units import pnpq_ureg
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
-    log = structlog.get_logger()
+    _chan_ident = ChanIdent.CHANNEL_1
 
-    # Setup channels for the device
-    available_channels: frozenset[ChanIdent] = frozenset(
-        [
-            ChanIdent.CHANNEL_1,
-        ]
-    )
+    log = structlog.get_logger()
 
     current_velocity_params: WaveplateVelocityParams = field(init=False)
     current_jog_params: WaveplateJogParams = field(init=False)
@@ -47,7 +42,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
             self,
             "current_state",
             {
-                ChanIdent.CHANNEL_1: 0 * pnpq_ureg.k10cr1_step,
+                self._chan_ident: 0 * pnpq_ureg.k10cr1_step,
             },
         )
 
@@ -99,7 +94,9 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         position_in_steps = position.to("k10cr1_step")
         self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
 
-        self.log.info(f"[Waveplate Stub] Channel {self._chan_ident} move to {position}")
+        self.log.info(
+            "[Waveplate Stub] Channel %s move to %s", self._chan_ident, position
+        )
 
     def get_velparams(self) -> WaveplateVelocityParams:
         return self.current_velocity_params
@@ -124,7 +121,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
                 Quantity, maximum_velocity.to("k10cr1_velocity")
             )
         self.log.info(
-            f"[K10CR1 Stub] Updated parameters: {self.current_velocity_params}"
+            "[K10CR1 Stub] Updated parameters: %s", self.current_velocity_params
         )
 
     def get_jogparams(self) -> WaveplateJogParams:

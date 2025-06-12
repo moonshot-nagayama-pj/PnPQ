@@ -82,8 +82,6 @@ class WaveplateHomeParams(TypedDict):
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
 
-    _chan_ident = ChanIdent.CHANNEL_1
-
     @abstractmethod
     def move_absolute(self, position: Quantity) -> None:
         """Move the waveplate to a certain angle.
@@ -104,7 +102,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
     ) -> None:
         """Set velocity parameters on the device.
 
-        :param minimum_velocity: The minimum velocity.
+        :param minimum_velocity: The minimum velocity. According to the
+            documentation, this should always be 0. Therefore this parameter
+            can be left unused.
         :param acceleration: The acceleration.
         :param maximum_velocity: The maximum velocity.
         """
@@ -179,6 +179,8 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
+    _chan_ident = ChanIdent.CHANNEL_1
+
     connection: AptConnection
 
     # Polling threads
@@ -186,9 +188,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
     tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
 
     log = structlog.get_logger()
-
-    # Setup channels for the device
-    available_channels: frozenset[ChanIdent] = frozenset([ChanIdent.CHANNEL_1])
 
     def __post_init__(self) -> None:
         # Start polling thread

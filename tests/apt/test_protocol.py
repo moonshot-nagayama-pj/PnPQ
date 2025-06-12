@@ -1,4 +1,4 @@
-# pylint: disable=C0103
+# pylint: disable=C0103,C0302
 import pytest
 from pint import DimensionalityError
 
@@ -30,6 +30,8 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_JOG,
     AptMessage_MGMSG_MOT_MOVE_STOP,
     AptMessage_MGMSG_MOT_MOVE_STOPPED,
+    AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES,
+    AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
     AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
     AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
@@ -662,21 +664,74 @@ def test_AptMessage_MGMSG_MOT_MOVE_STOP_to_bytes() -> None:
     assert msg.to_bytes() == b"\x65\x04\x01\x01\x50\x01"
 
 
-def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_from_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED.from_bytes(bytes.fromhex("6604 0100 01 22"))
+@pytest.mark.parametrize(
+    "message_bytes, expected_length, expected_type",
+    [
+        ("6604 0100 01 22", 6, AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES),
+        (
+            "6604 0e00 81 50 0100 68aaa001 0000 0000 30000080",
+            20,
+            AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
+        ),
+    ],
+)
+def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_from_bytes(
+    message_bytes: str, expected_length: int, expected_type: type[AptMessage]
+) -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED.from_bytes(bytes.fromhex(message_bytes))
+    assert (
+        msg.data_length + 6 == expected_length
+    )  # 6 bytes for the header which is not included in data_length
+    assert isinstance(msg, expected_type)
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES.from_bytes(
+        bytes.fromhex("6604 0100 01 22")
+    )
     assert msg.destination == 0x01
     assert msg.message_id == 0x0466
     assert msg.source == 0x22
     assert msg.chan_ident == 0x01
 
 
-def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_to_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED(
+def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES(
         destination=Address.HOST_CONTROLLER,
         source=Address.BAY_1,
         chan_ident=ChanIdent.CHANNEL_1,
     )
     assert msg.to_bytes() == bytes.fromhex("6604 0100 01 22")
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES.from_bytes(
+        # Example message from testing with a real K10CR1 waveplate. Not seen on official documentation.
+        bytes.fromhex("6604 0e00 81 50 0100 68aaa001 0000 0000 30000080")
+    )
+    assert msg.message_id == 0x0466
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x01
+    assert msg.source == 0x50
+    assert msg.position == 0x01A0AA68
+    assert msg.velocity == 0x00
+    assert msg.motor_current == 0x00
+    assert msg.status == UStatus(INMOTIONCCW=True, INMOTIONCW=True, ENABLED=True)
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.HOST_CONTROLLER,
+        source=Address.GENERIC_USB,
+        position=0x01A0AA68,
+        velocity=0x00,
+        motor_current=0 * pnpq_ureg.milliamp,
+        status=UStatus(INMOTIONCCW=True, INMOTIONCW=True, ENABLED=True),
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "6604 0e00 81 50 0100 68aaa001 0000 0000 30000080"
+    )
 
 
 def test_AptMessage_MGMSG_RESTOREFACTORYSETTINGS_from_bytes() -> None:

@@ -240,3 +240,108 @@ def test_from_k10cr1_acceleration_conversion(
     # Check if rounded correctly if output units are k10cr1_step per second
     if angular_acceleration.units == pnpq_ureg("k10cr1_step / second ** 2"):
         assert isinstance(acceleration.magnitude, int)
+
+
+@pytest.mark.parametrize(
+    "test_kbd101_position, expected_position, output_units",
+    [
+        (0, 0, "mm"),
+        (200000, 100, "mm"),
+        (200000, 10, "cm"),
+    ],
+)
+def test_kbd101_position_to_mm_conversion(
+    test_kbd101_position: Quantity, expected_position: float, output_units: str
+) -> None:
+
+    angle = (
+        (test_kbd101_position * pnpq_ureg.kbd101_position).to(output_units).magnitude
+    )
+    assert angle == pytest.approx(expected_position)
+
+
+@pytest.mark.parametrize(
+    "test_position, expected_kbd101_position",
+    [
+        (0 * pnpq_ureg.mm, 0),
+        (100 * pnpq_ureg.mm, 200000),
+        (10 * pnpq_ureg.cm, 200000),
+    ],
+)
+def test_mm_to_kbd101_position_conversion(
+    test_position: Quantity, expected_kbd101_position: int
+) -> None:
+
+    kbd101_position = test_position.to("kbd101_position").magnitude
+    assert kbd101_position == expected_kbd101_position
+    assert isinstance(kbd101_position, int)
+
+
+@pytest.mark.parametrize(
+    "test_velocity, expected_kbd101_velocity",
+    [
+        (1 * pnpq_ureg("mm / second"), 13422),
+        (2 * pnpq_ureg("mm / second"), 26844),
+        (1 * pnpq_ureg("cm / second"), 134218),
+    ],
+)
+def test_velocity_to_kbd101_velocity(
+    test_velocity: Quantity,
+    expected_kbd101_velocity: int,
+) -> None:
+    kbd101_velocity = test_velocity.to("kbd101_velocity").magnitude
+    assert kbd101_velocity == expected_kbd101_velocity
+    assert isinstance(kbd101_velocity, int)
+
+
+@pytest.mark.parametrize(
+    "kbd101_velocity, expected_velocity",
+    [
+        (13422, 1 * pnpq_ureg("mm / second")),
+        (26844, 2 * pnpq_ureg("mm / second")),
+        (134218, 1 * pnpq_ureg("cm / second")),
+    ],
+)
+def test_kbd101_velocity_to_velocity(
+    kbd101_velocity: int,
+    expected_velocity: Quantity,
+) -> None:
+    velocity = (kbd101_velocity * pnpq_ureg.kbd101_velocity).to(expected_velocity.units)
+    assert velocity.magnitude == pytest.approx(expected_velocity.magnitude)
+    assert velocity.units == expected_velocity.units
+
+
+@pytest.mark.parametrize(
+    "test_kbd101_acceleration, expected_kbd101_acceleration",
+    [
+        (1 * pnpq_ureg("mm / second ** 2"), 1),
+        (2 * pnpq_ureg("mm / second ** 2"), 3),
+        (1 * pnpq_ureg("cm / second ** 2"), 14),
+    ],
+)
+def test_acceleration_to_kbd101_acceleration(
+    test_kbd101_acceleration: Quantity,
+    expected_kbd101_acceleration: int,
+) -> None:
+    kbd101_acceleration = test_kbd101_acceleration.to("kbd101_acceleration").magnitude
+    assert kbd101_acceleration == expected_kbd101_acceleration
+    assert isinstance(kbd101_acceleration, int)
+
+
+@pytest.mark.parametrize(
+    "kbd101_acceleration, expected_acceleration",
+    [
+        (1, 1 * pnpq_ureg("mm / second ** 2")),
+        (3, 2 * pnpq_ureg("mm / second ** 2")),
+        (14, 1 * pnpq_ureg("cm / second ** 2")),
+    ],
+)
+def test_kbd101_acceleration_to_acceleration(
+    kbd101_acceleration: int,
+    expected_acceleration: Quantity,
+) -> None:
+    acceleration = (kbd101_acceleration * pnpq_ureg.kbd101_acceleration).to(
+        expected_acceleration.units
+    )
+    assert acceleration.magnitude == pytest.approx(expected_acceleration.magnitude)
+    assert acceleration.units == expected_acceleration.units
