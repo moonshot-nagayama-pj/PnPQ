@@ -219,6 +219,15 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
             )
         )
 
+        current_status = self.get_status()
+        is_homed = current_status.status.HOMED
+        if is_homed:
+            self.log.info("[ODL] Device is already homed, skipping homing on setup.")
+        else:
+            self.log.info("[ODL] Device is not homed, homing on setup.")
+            time.sleep(0.1)
+            self.home()
+
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
         with self.tx_poller_thread_lock:
