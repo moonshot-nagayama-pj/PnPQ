@@ -17,6 +17,7 @@ from pnpq.units import pnpq_ureg
 
 log = structlog.get_logger()
 
+
 def test_connection() -> None:
     with AptConnection(serial_number="55409764") as connection:
         assert not connection.is_closed()
@@ -103,7 +104,6 @@ def test_homeparams(device: WaveplateThorlabsK10CR1) -> None:
     assert homeparams["limit_switch"] == LimitSwitch.HARDWARE_REVERSE
     assert homeparams["home_velocity"].to("k10cr1_velocity").magnitude == 73286848
     assert homeparams["offset_distance"].to("k10cr1_step").magnitude == 2
-
 
     log.info("Home parameters test passed", homeparams=homeparams)
 

@@ -182,6 +182,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
     _chan_ident = ChanIdent.CHANNEL_1
 
     connection: AptConnection
+    home_on_init: bool = field(default=True)
 
     # Polling threads
     tx_poller_thread: threading.Thread = field(init=False)
@@ -211,13 +212,11 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
         if homed:
             self.log.info(
-                "[Waveplate] Device is already homed. No need to home on startup."
+                "[Waveplate] Device is already homed, skipping homing on setup."
             )
-        else:
+        elif self.home_on_init:
             # Home the device on startup
-            self.log.info(
-                "[Waveplate] Device not homed. Homing the device on startup..."
-            )
+            self.log.info("[Waveplate] Device is not homed, homing on setup.")
 
             # Set home velocity to 500 times the default amount
             # because the default amount is really slow
@@ -227,6 +226,10 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             time.sleep(1)
             self.home()
 
+        else:
+            self.log.info(
+                "[Wvaveplate] Device is not homed, but skipping homing on setup because home_on_init is set to False.",
+            )
 
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
