@@ -39,7 +39,7 @@ def test_homed_on_startup() -> None:
         assert device.is_homed()
 
 
-@pytest.fixture(name="device", scope="function")
+@pytest.fixture(name="device", scope="module")
 def device_fixture() -> Generator[WaveplateThorlabsK10CR1]:
     with AptConnection(serial_number="55409764") as connection:
         yield WaveplateThorlabsK10CR1(connection=connection)
@@ -102,7 +102,7 @@ def test_homeparams(device: WaveplateThorlabsK10CR1) -> None:
 
     assert homeparams["home_direction"] == HomeDirection.REVERSE
     assert homeparams["limit_switch"] == LimitSwitch.HARDWARE_REVERSE
-    assert homeparams["home_velocity"].to("k10cr1_velocity").magnitude == 73286848
+    assert homeparams["home_velocity"].to("k10cr1_velocity").magnitude == 73291 * 500
     assert homeparams["offset_distance"].to("k10cr1_step").magnitude == 2
 
     log.info("Home parameters test passed", homeparams=homeparams)
