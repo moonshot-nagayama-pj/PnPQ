@@ -194,6 +194,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
     _chan_ident = ChanIdent.CHANNEL_1
 
     connection: AptConnection
+    home_on_init: bool = field(default=True)
 
     # Polling threads
     tx_poller_thread: threading.Thread = field(init=False)
@@ -218,6 +219,19 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 source=Address.HOST_CONTROLLER,
             )
         )
+
+        current_status = self.get_status()
+        is_homed = current_status.status.HOMED
+        if is_homed:
+            self.log.info("[ODL] Device is already homed, skipping homing on setup.")
+        elif self.home_on_init:
+            self.log.info("[ODL] Device is not homed, homing on setup.")
+            time.sleep(0.1)
+            self.home()
+        else:
+            self.log.info(
+                "[ODL] Device is not homed, but skipping homing on setup because home_on_init is set to False.",
+            )
 
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
