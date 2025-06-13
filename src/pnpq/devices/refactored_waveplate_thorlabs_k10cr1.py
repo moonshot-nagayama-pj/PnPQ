@@ -11,15 +11,32 @@ from ..apt.connection import AptConnection
 from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
+    AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_GET_JOGPARAMS,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+    AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_MOVE_JOG,
+    AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
+    AptMessage_MGMSG_MOT_REQ_STATUSUPDATE,
     AptMessage_MGMSG_MOT_REQ_VELPARAMS,
+    AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_SET_JOGPARAMS,
     AptMessage_MGMSG_MOT_SET_VELPARAMS,
     ChanIdent,
     EnableState,
+    HomeDirection,
+    JogDirection,
+    JogMode,
+    LimitSwitch,
+    StopMode,
 )
 from ..units import pnpq_ureg
 
@@ -35,6 +52,32 @@ class WaveplateVelocityParams(TypedDict):
     acceleration: Quantity
     #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
     maximum_velocity: Quantity
+
+
+class WaveplateJogParams(TypedDict):
+
+    # TODO: add comments
+
+    jog_mode: JogMode
+    # Dimensionality must be [angle] or k10cr1_step
+    jog_step_size: Quantity
+    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
+    jog_minimum_velocity: Quantity
+    # Dimensionality must be ([angle] / [time] ** 2) or k10cr1_acceleration
+    jog_acceleration: Quantity
+    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
+    jog_maximum_velocity: Quantity
+
+    jog_stop_mode: StopMode
+
+
+class WaveplateHomeParams(TypedDict):
+    home_direction: HomeDirection
+    limit_switch: LimitSwitch
+    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
+    home_velocity: Quantity
+    # Dimensionality must be [angle] or k10cr1_step
+    offset_distance: Quantity
 
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
@@ -66,12 +109,80 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         :param maximum_velocity: The maximum velocity.
         """
 
+    @abstractmethod
+    def get_jogparams(self) -> WaveplateJogParams:
+        """Request jog parameters from the device."""
+
+    @abstractmethod
+    def set_jogparams(
+        self,
+        jog_mode: None | JogMode = None,
+        jog_step_size: None | Quantity = None,
+        jog_minimum_velocity: None | Quantity = None,
+        jog_acceleration: None | Quantity = None,
+        jog_maximum_velocity: None | Quantity = None,
+        jog_stop_mode: None | StopMode = None,
+    ) -> None:
+        """Set jog parameters on the device.
+
+        :param jog_mode: The jog mode.
+        :param jog_step_size: The jog step size.
+        :param jog_minimum_velocity: The minimum velocity.
+        :param jog_acceleration: The acceleration.
+        :param jog_maximum_velocity: The maximum velocity.
+        :param jog_stop_mode: The stop mode.
+        """
+
+    @abstractmethod
+    def get_homeparams(self) -> WaveplateHomeParams:
+        """Request home parameters from the device."""
+
+    @abstractmethod
+    def set_homeparams(
+        self,
+        home_direction: None | HomeDirection = None,
+        limit_switch: None | LimitSwitch = None,
+        home_velocity: None | Quantity = None,
+        offset_distance: None | Quantity = None,
+    ) -> None:
+        """Set home parameters on the device.
+
+        :param home_direction: The home direction.
+        :param limit_switch: The limit switch.
+        :param home_velocity: The home velocity.
+        :param offset_distance: The offset distance.
+        """
+
+    @abstractmethod
+    def jog(self, jog_direction: JogDirection) -> None:
+        """Jog the waveplate in a certain direction.
+
+        :param jog_direction: The direction to jog in.
+        """
+
+    @abstractmethod
+    def home(self) -> None:
+        """Move the waveplate to its home position."""
+
+    @abstractmethod
+    def identify(self) -> None:
+        """Identify the device by blinking its LED."""
+
+    @abstractmethod
+    def is_homed(self) -> bool:
+        """Check if the device is homed.
+        Sends the REQ_STATUSUPDATE message and checks the HOMED status bit.
+
+        Returns True if the device is homed, False otherwise.
+        """
+
 
 @dataclass(frozen=True, kw_only=True)
 class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
     _chan_ident = ChanIdent.CHANNEL_1
 
     connection: AptConnection
+    home_on_init: bool = field(default=True)
 
     # Polling threads
     tx_poller_thread: threading.Thread = field(init=False)
@@ -94,8 +205,31 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             AptMessage_MGMSG_HW_START_UPDATEMSGS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
-            )
+            ),
         )
+
+        homed = self.is_homed()
+
+        if homed:
+            self.log.info(
+                "[Waveplate] Device is already homed, skipping homing on setup."
+            )
+        elif self.home_on_init:
+            # Home the device on startup
+            self.log.info("[Waveplate] Device is not homed, homing on setup.")
+
+            # Set home velocity to 500 times the default amount
+            # because the default amount is really slow
+            self.set_homeparams(
+                home_velocity=73291 * pnpq_ureg.k10cr1_velocity * 500,
+            )
+            time.sleep(1)
+            self.home()
+
+        else:
+            self.log.info(
+                "[Waveplate] Device is not homed, but skipping homing on setup because home_on_init is set to False.",
+            )
 
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
@@ -142,6 +276,16 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
         )
+
+    def identify(self) -> None:
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOD_IDENTIFY(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+        time.sleep(5)  # Allow time for the identify command to complete
 
     def move_absolute(self, position: Quantity) -> None:
         absolute_distance = round(position.to("k10cr1_step").magnitude)
@@ -231,3 +375,199 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 .magnitude,
             )
         )
+
+    def get_jogparams(self) -> WaveplateJogParams:
+        params = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_REQ_JOGPARAMS(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_JOGPARAMS)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+
+        assert isinstance(params, AptMessage_MGMSG_MOT_GET_JOGPARAMS)
+
+        result: WaveplateJogParams = {
+            "jog_mode": params.jog_mode,
+            "jog_step_size": params.jog_step_size * pnpq_ureg.k10cr1_step,
+            "jog_minimum_velocity": params.jog_minimum_velocity
+            * pnpq_ureg.k10cr1_velocity,
+            "jog_acceleration": params.jog_acceleration * pnpq_ureg.k10cr1_acceleration,
+            "jog_maximum_velocity": params.jog_maximum_velocity
+            * pnpq_ureg.k10cr1_velocity,
+            "jog_stop_mode": params.jog_stop_mode,
+        }
+        return result
+
+    def set_jogparams(
+        self,
+        jog_mode: JogMode | None = None,
+        jog_step_size: Quantity | None = None,
+        jog_minimum_velocity: Quantity | None = None,
+        jog_acceleration: Quantity | None = None,
+        jog_maximum_velocity: Quantity | None = None,
+        jog_stop_mode: StopMode | None = None,
+    ) -> None:
+        # First get the current jog parameters
+        params = self.get_jogparams()
+
+        if jog_mode is not None:
+            params["jog_mode"] = jog_mode
+        if jog_step_size is not None:
+            params["jog_step_size"] = jog_step_size
+        if jog_minimum_velocity is not None:
+            params["jog_minimum_velocity"] = jog_minimum_velocity
+        if jog_acceleration is not None:
+            params["jog_acceleration"] = jog_acceleration
+        if jog_maximum_velocity is not None:
+            params["jog_maximum_velocity"] = jog_maximum_velocity
+        if jog_stop_mode is not None:
+            params["jog_stop_mode"] = jog_stop_mode
+
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOT_SET_JOGPARAMS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+                chan_ident=self._chan_ident,
+                jog_mode=params["jog_mode"],
+                jog_step_size=params["jog_step_size"]
+                .to(pnpq_ureg.k10cr1_step)
+                .magnitude,
+                jog_minimum_velocity=params["jog_minimum_velocity"]
+                .to(pnpq_ureg.k10cr1_velocity)
+                .magnitude,
+                jog_acceleration=params["jog_acceleration"]
+                .to(pnpq_ureg.k10cr1_acceleration)
+                .magnitude,
+                jog_maximum_velocity=params["jog_maximum_velocity"]
+                .to(pnpq_ureg.k10cr1_velocity)
+                .magnitude,
+                jog_stop_mode=params["jog_stop_mode"],
+            )
+        )
+        self.log.debug("set_jogparams", params=params)
+
+    def get_homeparams(self) -> WaveplateHomeParams:
+        params = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_REQ_HOMEPARAMS(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_HOMEPARAMS)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+
+        assert isinstance(params, AptMessage_MGMSG_MOT_GET_HOMEPARAMS)
+
+        result: WaveplateHomeParams = {
+            "home_direction": params.home_direction,
+            "limit_switch": params.limit_switch,
+            "home_velocity": params.home_velocity * pnpq_ureg.k10cr1_velocity,
+            "offset_distance": params.offset_distance * pnpq_ureg.k10cr1_step,
+        }
+        return result
+
+    def set_homeparams(
+        self,
+        home_direction: HomeDirection | None = None,
+        limit_switch: LimitSwitch | None = None,
+        home_velocity: Quantity | None = None,
+        offset_distance: Quantity | None = None,
+    ) -> None:
+        # First get the current home parameters
+        params = self.get_homeparams()
+
+        if home_direction is not None:
+            params["home_direction"] = home_direction
+        if limit_switch is not None:
+            params["limit_switch"] = limit_switch
+        if home_velocity is not None:
+            params["home_velocity"] = home_velocity
+        if offset_distance is not None:
+            params["offset_distance"] = offset_distance
+
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_MOT_SET_HOMEPARAMS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+                chan_ident=self._chan_ident,
+                home_direction=params["home_direction"],
+                limit_switch=params["limit_switch"],
+                home_velocity=params["home_velocity"]
+                .to(pnpq_ureg.k10cr1_velocity)
+                .magnitude,
+                offset_distance=params["offset_distance"]
+                .to(pnpq_ureg.k10cr1_step)
+                .magnitude,
+            )
+        )
+
+    def home(self) -> None:
+        self.set_channel_enabled(True)
+        start_time = time.perf_counter()
+        self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_HOME(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_HOMED)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        elapsed_time = time.perf_counter() - start_time
+        self.log.debug("home command finished", elapsed_time=elapsed_time)
+        self.set_channel_enabled(False)
+
+    def jog(self, jog_direction: JogDirection) -> None:
+        self.set_channel_enabled(True)
+        self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_JOG(
+                chan_ident=self._chan_ident,
+                jog_direction=jog_direction,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        self.set_channel_enabled(False)
+
+    def is_homed(self) -> bool:
+
+        # Maybe possible to wait for status update instead?
+        # Because autoupdate messages are sent every second
+        # Also, according to the protocol, K10CR1 should not
+        # support REQ_STATUSUPDATE, but upon testing, it does.
+        status_message = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_REQ_STATUSUPDATE(
+                chan_ident=self._chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        assert isinstance(status_message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+        return status_message.status.HOMED
