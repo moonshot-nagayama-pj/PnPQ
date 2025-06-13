@@ -200,21 +200,20 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         self.tx_poller_thread.start()
 
         # Send autoupdate
-        status_message = self.connection.send_message_expect_reply(
+        self.connection.send_message_no_reply(
             AptMessage_MGMSG_HW_START_UPDATEMSGS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
             ),
-            lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
-                and message.destination == Address.HOST_CONTROLLER
-                and message.source == Address.GENERIC_USB
-            ),
         )
-        assert isinstance(status_message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
-        homed = status_message.status.HOMED
 
-        if not homed:
+        homed = self.is_homed()
+
+        if homed:
+            self.log.info(
+                "[Waveplate] Device is already homed. No need to home on startup."
+            )
+        else:
             # Home the device on startup
             self.log.info(
                 "[Waveplate] Device not homed. Homing the device on startup..."
@@ -227,10 +226,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             )
             time.sleep(1)
             self.home()
-        else:
-            self.log.info(
-                "[Waveplate] Device is already homed. No need to home on startup."
-            )
+
 
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:

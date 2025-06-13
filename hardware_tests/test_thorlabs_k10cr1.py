@@ -15,6 +15,7 @@ from pnpq.apt.protocol import (
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
 from pnpq.units import pnpq_ureg
 
+log = structlog.get_logger()
 
 def test_connection() -> None:
     with AptConnection(serial_number="55409764") as connection:
@@ -53,30 +54,29 @@ def test_identify(device: WaveplateThorlabsK10CR1) -> None:
 
 
 def test_jogparams(device: WaveplateThorlabsK10CR1) -> None:
+    mode = JogMode.SINGLE_STEP
+    step_size = 10 * pnpq_ureg.degree
+    minimum_velocity = 0 * pnpq_ureg.k10cr1_velocity
+    acceleration = 30 * pnpq_ureg.degree / pnpq_ureg.second**2
+    maximum_velocity = 10 * pnpq_ureg.degree / pnpq_ureg.second
+    stop_mode = StopMode.IMMEDIATE
+
     device.set_jogparams(
-        jog_mode=JogMode.SINGLE_STEP,
-        jog_step_size=10 * pnpq_ureg.degree,
-        jog_minimum_velocity=0 * pnpq_ureg.k10cr1_velocity,
-        jog_acceleration=30 * pnpq_ureg.degree / pnpq_ureg.second**2,
-        jog_maximum_velocity=10 * pnpq_ureg.degree / pnpq_ureg.second,
-        jog_stop_mode=StopMode.IMMEDIATE,
+        jog_mode=mode,
+        jog_step_size=step_size,
+        jog_minimum_velocity=minimum_velocity,
+        jog_acceleration=acceleration,
+        jog_maximum_velocity=maximum_velocity,
+        jog_stop_mode=stop_mode,
     )
 
     jogparams = device.get_jogparams()
-    assert jogparams["jog_mode"] == JogMode.SINGLE_STEP
-    assert jogparams["jog_step_size"].to("k10cr1_step").magnitude == int(
-        (10 * pnpq_ureg.degree).to("k10cr1_step").magnitude
-    )
-    assert jogparams["jog_minimum_velocity"].to("k10cr1_velocity").magnitude == 0
-    assert jogparams["jog_acceleration"].to("k10cr1_acceleration").magnitude == int(
-        (30 * pnpq_ureg.degree / pnpq_ureg.second**2)
-        .to("k10cr1_acceleration")
-        .magnitude
-    )
-    assert jogparams["jog_maximum_velocity"].to("k10cr1_velocity").magnitude == int(
-        (10 * pnpq_ureg.degree / pnpq_ureg.second).to("k10cr1_velocity").magnitude
-    )
-    assert jogparams["jog_stop_mode"] == StopMode.IMMEDIATE
+    assert jogparams["jog_mode"] == mode
+    assert jogparams["jog_step_size"] == step_size.to("k10cr1_step")
+    assert jogparams["jog_minimum_velocity"] == minimum_velocity.to("k10cr1_velocity")
+    assert jogparams["jog_acceleration"] == acceleration.to("k10cr1_acceleration")
+    assert jogparams["jog_maximum_velocity"] == maximum_velocity.to("k10cr1_velocity")
+    assert jogparams["jog_stop_mode"] == stop_mode
 
 
 def test_velparams(device: WaveplateThorlabsK10CR1) -> None:
@@ -104,13 +104,12 @@ def test_homeparams(device: WaveplateThorlabsK10CR1) -> None:
     assert homeparams["home_velocity"].to("k10cr1_velocity").magnitude == 73286848
     assert homeparams["offset_distance"].to("k10cr1_step").magnitude == 2
 
-    logger = structlog.get_logger()
-    logger.info("Home parameters test passed", homeparams=homeparams)
+
+    log.info("Home parameters test passed", homeparams=homeparams)
 
 
 def test_home(device: WaveplateThorlabsK10CR1) -> None:
-    logger = structlog.get_logger()
-    logger.info("Starting home test")
+    log.info("Starting home test")
     device.home()
 
 
