@@ -228,7 +228,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
         else:
             self.log.info(
-                "[Wvaveplate] Device is not homed, but skipping homing on setup because home_on_init is set to False.",
+                "[Waveplate] Device is not homed, but skipping homing on setup because home_on_init is set to False.",
             )
 
     # Polling thread for sending status update requests
