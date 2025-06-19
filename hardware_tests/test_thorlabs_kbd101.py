@@ -3,7 +3,7 @@ from typing import Generator
 import pytest
 
 from pnpq.apt.connection import AptConnection
-from pnpq.devices.refactored_odl_thorlabs_kbd101 import OpticalDelayLineThorlabsKBD101
+from pnpq.devices.odl_thorlabs_kbd101 import OpticalDelayLineThorlabsKBD101
 from pnpq.units import pnpq_ureg
 
 

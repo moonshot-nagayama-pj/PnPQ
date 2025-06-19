@@ -10,12 +10,8 @@ from pnpq.apt.protocol import (
     LimitSwitch,
     StopMode,
 )
-from pnpq.devices.refactored_odl_thorlabs_kbd101 import (
-    AbstractOpticalDelayLineThorlabsKBD101,
-)
-from pnpq.devices.refactored_odl_thorlabs_kbd101_stub import (
-    OpticalDelayLineThorlabsKBD101Stub,
-)
+from pnpq.devices.odl_thorlabs_kbd101 import AbstractOpticalDelayLineThorlabsKBD101
+from pnpq.devices.odl_thorlabs_kbd101_stub import OpticalDelayLineThorlabsKBD101Stub
 from pnpq.units import pnpq_ureg
 
 

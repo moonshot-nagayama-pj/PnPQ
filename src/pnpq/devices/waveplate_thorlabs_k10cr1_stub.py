@@ -4,7 +4,7 @@ from typing import cast
 import structlog
 from pint import Quantity
 
-from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
+from pnpq.devices.waveplate_thorlabs_k10cr1 import (
     AbstractWaveplateThorlabsK10CR1,
     WaveplateHomeParams,
     WaveplateJogParams,
