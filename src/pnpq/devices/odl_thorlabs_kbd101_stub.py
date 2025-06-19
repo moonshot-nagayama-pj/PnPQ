@@ -18,7 +18,7 @@ from ..apt.protocol import (
     UStatusBits,
 )
 from ..units import pnpq_ureg
-from .refactored_odl_thorlabs_kbd101 import (
+from .odl_thorlabs_kbd101 import (
     AbstractOpticalDelayLineThorlabsKBD101,
     OpticalDelayLineHomeParams,
     OpticalDelayLineJogParams,

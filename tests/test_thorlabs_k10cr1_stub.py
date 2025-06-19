@@ -8,12 +8,8 @@ from pnpq.apt.protocol import (
     LimitSwitch,
     StopMode,
 )
-from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import (
-    AbstractWaveplateThorlabsK10CR1,
-)
-from pnpq.devices.refactored_waveplate_thorlabs_k10cr1_stub import (
-    WaveplateThorlabsK10CR1Stub,
-)
+from pnpq.devices.waveplate_thorlabs_k10cr1 import AbstractWaveplateThorlabsK10CR1
+from pnpq.devices.waveplate_thorlabs_k10cr1_stub import WaveplateThorlabsK10CR1Stub
 from pnpq.units import pnpq_ureg
 
 

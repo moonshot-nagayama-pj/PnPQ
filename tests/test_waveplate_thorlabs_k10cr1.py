@@ -12,7 +12,7 @@ from pnpq.apt.protocol import (
     Status,
     UStatus,
 )
-from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
+from pnpq.devices.waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
 from pnpq.units import pnpq_ureg
 
 
