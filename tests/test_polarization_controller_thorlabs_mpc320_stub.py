@@ -28,9 +28,12 @@ def test_move_absolute(
     mpc_position = stub_mpc.get_status(channel).position * pnpq_ureg.mpc320_step
     assert mpc_position.to("degree").magnitude == pytest.approx(45, abs=0.05)
 
+
 def test_move_absolute_sleep() -> None:
     """Test that the stub sleeps for the correct amount of time when moving."""
-    mpc = PolarizationControllerThorlabsMPC320Stub(time_multiplier=1.0, steps_per_second=40 * pnpq_ureg.degree / pnpq_ureg.second)
+    mpc = PolarizationControllerThorlabsMPC320Stub(
+        time_multiplier=1.0, steps_per_second=40 * pnpq_ureg.degree / pnpq_ureg.second
+    )
 
     position = 100 * pnpq_ureg.degree
     mpc.move_absolute(ChanIdent.CHANNEL_1, position)
@@ -40,9 +43,12 @@ def test_move_absolute_sleep() -> None:
 
     # Not sure what to assert...
 
+
 def test_home_sleep() -> None:
     """Test that the stub sleeps for the correct amount of time when homing."""
-    mpc = PolarizationControllerThorlabsMPC320Stub(time_multiplier=1.0, steps_per_second=40 * pnpq_ureg.degree / pnpq_ureg.second)
+    mpc = PolarizationControllerThorlabsMPC320Stub(
+        time_multiplier=1.0, steps_per_second=40 * pnpq_ureg.degree / pnpq_ureg.second
+    )
     position = 100 * pnpq_ureg.degree
     mpc.move_absolute(ChanIdent.CHANNEL_1, position)
     mpc.home(ChanIdent.CHANNEL_1)

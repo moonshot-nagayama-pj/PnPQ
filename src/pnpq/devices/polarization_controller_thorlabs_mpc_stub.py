@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
 import time
+from dataclasses import dataclass, field
 from typing import cast
 
 import structlog
@@ -28,8 +28,7 @@ class PolarizationControllerThorlabsMPC320Stub(
     steps_per_second: Quantity = field(
         default=2000 * pnpq_ureg.mpc320_step / pnpq_ureg.second
     )
-    time_multiplier: float = field(default=0.0) # Simulate time if > 0.0
-
+    time_multiplier: float = field(default=0.0)  # Simulate time if > 0.0
 
     # Setup channels for the device
     available_channels: frozenset[ChanIdent] = frozenset(
@@ -71,25 +70,21 @@ class PolarizationControllerThorlabsMPC320Stub(
             },
         )
 
-    def sleep_delta_position(
-        self, delta_position: Quantity
-    ) -> None:
+    def sleep_delta_position(self, delta_position: Quantity) -> None:
         if self.time_multiplier <= 0.0:
             return
 
         # Calculate the time it would take to move the given delta position
 
-        time_to_move = abs(
-            delta_position.to("degree").magnitude
-            / self.steps_per_second.to("degree / second").magnitude
-        ) * self.time_multiplier
-
-        self.log.info(
-            "[MPC Stub] Moved by {} in {} seconds".format(
-                delta_position,
-                time_to_move,
+        time_to_move = (
+            abs(
+                delta_position.to("degree").magnitude
+                / self.steps_per_second.to("degree / second").magnitude
             )
+            * self.time_multiplier
         )
+
+        self.log.info(f"[MPC Stub] Moved by {delta_position} in {time_to_move} seconds")
 
         time.sleep(time_to_move)
 
@@ -158,7 +153,9 @@ class PolarizationControllerThorlabsMPC320Stub(
             )
 
         position_in_steps = position.to("mpc320_steps")
-        delta_position = cast(Quantity, position_in_steps - self.current_state[chan_ident])
+        delta_position = cast(
+            Quantity, position_in_steps - self.current_state[chan_ident]
+        )
         self.sleep_delta_position(delta_position)
 
         self.current_state[chan_ident] = cast(Quantity, position_in_steps)
