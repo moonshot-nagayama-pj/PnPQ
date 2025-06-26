@@ -223,3 +223,4 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
     def identify(self) -> None:
         # Do nothing for the stub
         pass
+

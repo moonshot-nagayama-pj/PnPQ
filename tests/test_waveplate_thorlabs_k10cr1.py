@@ -46,7 +46,7 @@ def test_move_absolute() -> None:
 
             assert match_reply_callback(reply_message)
 
-    ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
+    status_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
         chan_ident=ChanIdent(1),
         destination=Address.HOST_CONTROLLER,
         source=Address.GENERIC_USB,
@@ -56,7 +56,7 @@ def test_move_absolute() -> None:
     )
 
     connection.send_message_expect_reply.side_effect = [
-        ustatus_message,
+        status_message,
         mock_send_message_expect_reply,
     ]
     connection.tx_ordered_sender_awaiting_reply = Mock()
@@ -70,3 +70,21 @@ def test_move_absolute() -> None:
     # Enabling and disabling the channel doesn't use an expect reply in K10CR1
     # Second call for getting the status update to check if the device is homed
     assert connection.send_message_expect_reply.call_count == 2
+
+def test_velparams() -> None:
+    connection = create_autospec(AptConnection)
+
+
+
+
+def test_jogparams() -> None:
+    pass
+
+def test_homeparams() -> None:
+    pass
+
+def test_jog() -> None:
+    pass
+
+def test_home() -> None:
+    pass

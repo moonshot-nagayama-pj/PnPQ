@@ -22,6 +22,8 @@ def stub_waveplate_fixture() -> AbstractWaveplateThorlabsK10CR1:
     waveplate = WaveplateThorlabsK10CR1Stub()
     return waveplate
 
+def test_automatic_home(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
+    assert stub_waveplate.is_homed()
 
 def test_move_absolute(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
     position = 45 * pnpq_ureg.degree
@@ -101,3 +103,13 @@ def test_homeparams(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
     assert homeparams["limit_switch"] == LimitSwitch.HARDWARE_FORWARD
     assert homeparams["home_velocity"].to("k10cr1_velocity").magnitude == 1
     assert homeparams["offset_distance"].to("k10cr1_step").magnitude == 2
+
+
+def test_home(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
+    stub_waveplate.move_absolute(10 * pnpq_ureg.k10cr1_step)
+    stub_waveplate.home()
+
+    # Currently throws a mypy error because current_state is not in the AbstractWaveplateThorlabsK10CR1.
+    # TODO: Replace with get_params when implemented.
+    waveplate_position = stub_waveplate.current_state[ChanIdent.CHANNEL_1]  # type: ignore
+    assert waveplate_position.to("k10cr1_step").magnitude == 0
