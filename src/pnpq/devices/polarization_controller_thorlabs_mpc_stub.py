@@ -25,9 +25,6 @@ class PolarizationControllerThorlabsMPC320Stub(
 ):
     log = structlog.get_logger()
 
-    steps_per_second: Quantity = field(
-        default=2000 * pnpq_ureg.mpc320_step / pnpq_ureg.second
-    )
     time_multiplier: float = field(default=0.0)  # Simulate time if > 0.0
 
     # Setup channels for the device
@@ -39,7 +36,9 @@ class PolarizationControllerThorlabsMPC320Stub(
         ]
     )
 
-    current_params: PolarizationControllerParams = field(init=False)
+    current_params: PolarizationControllerParams = field(
+        default_factory=PolarizationControllerParams
+    )
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
 
@@ -48,17 +47,6 @@ class PolarizationControllerThorlabsMPC320Stub(
 
         # Current params will be set to a default state
         # To change them, use the set_params method
-        object.__setattr__(
-            self,
-            "current_params",
-            {
-                "velocity": 20 * pnpq_ureg.mpc320_velocity,
-                "home_position": 0 * pnpq_ureg.mpc320_steps,
-                "jog_step_1": 10 * pnpq_ureg.mpc320_steps,
-                "jog_step_2": 10 * pnpq_ureg.mpc320_steps,
-                "jog_step_3": 10 * pnpq_ureg.mpc320_steps,
-            },
-        )
 
         object.__setattr__(
             self,
@@ -71,7 +59,9 @@ class PolarizationControllerThorlabsMPC320Stub(
         )
 
     def sleep_delta_position(self, delta_position: Quantity) -> None:
-        if self.time_multiplier <= 0.0:
+        if self.time_multiplier < 0.0:
+            raise ValueError("Time multiplier must be greater than or equal to 0.0.")
+        if self.time_multiplier == 0.0:
             return
 
         # Calculate the time it would take to move the given delta position
@@ -79,7 +69,7 @@ class PolarizationControllerThorlabsMPC320Stub(
         time_to_move = (
             abs(
                 delta_position.to("degree").magnitude
-                / self.steps_per_second.to("degree / second").magnitude
+                / self.current_params["velocity"].to("degree / second").magnitude
             )
             * self.time_multiplier
         )

@@ -3,6 +3,7 @@ import pytest
 from pnpq.apt.protocol import ChanIdent, JogDirection
 from pnpq.devices.polarization_controller_thorlabs_mpc import (
     AbstractPolarizationControllerThorlabsMPC,
+    PolarizationControllerParams,
 )
 from pnpq.devices.polarization_controller_thorlabs_mpc_stub import (
     PolarizationControllerThorlabsMPC320Stub,
@@ -31,8 +32,12 @@ def test_move_absolute(
 
 def test_move_absolute_sleep() -> None:
     """Test that the stub sleeps for the correct amount of time when moving."""
+
+    params = PolarizationControllerParams()
+    params["velocity"] = 20 * pnpq_ureg.mpc320_velocity
+
     mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_multiplier=1.0, steps_per_second=40 * pnpq_ureg.degree / pnpq_ureg.second
+        time_multiplier=1.0,
     )
 
     position = 100 * pnpq_ureg.degree
@@ -46,9 +51,7 @@ def test_move_absolute_sleep() -> None:
 
 def test_home_sleep() -> None:
     """Test that the stub sleeps for the correct amount of time when homing."""
-    mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_multiplier=1.0, steps_per_second=40 * pnpq_ureg.degree / pnpq_ureg.second
-    )
+    mpc = PolarizationControllerThorlabsMPC320Stub(time_multiplier=1.0)
     position = 100 * pnpq_ureg.degree
     mpc.move_absolute(ChanIdent.CHANNEL_1, position)
     mpc.home(ChanIdent.CHANNEL_1)
