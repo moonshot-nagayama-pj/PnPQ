@@ -6,6 +6,7 @@ import structlog
 from pint import Quantity
 
 from pnpq.apt.protocol import Address, UStatus, UStatusBits
+from pnpq.mock_util import sleep_delta_position
 
 from ..apt.protocol import (
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
@@ -58,31 +59,13 @@ class PolarizationControllerThorlabsMPC320Stub(
             },
         )
 
-    def sleep_delta_position(self, delta_position: Quantity) -> None:
-        if self.time_multiplier < 0.0:
-            raise ValueError("Time multiplier must be greater than or equal to 0.0.")
-        if self.time_multiplier == 0.0:
-            return
-
-        # Calculate the time it would take to move the given delta position
-
-        time_to_move = (
-            abs(
-                delta_position.to("degree").magnitude
-                / self.current_params["velocity"].to("degree / second").magnitude
-            )
-            * self.time_multiplier
-        )
-
-        self.log.info(f"[MPC Stub] Moved by {delta_position} in {time_to_move} seconds")
-
-        time.sleep(time_to_move)
-
     def home(self, chan_ident: ChanIdent) -> None:
         home_value = self.current_params["home_position"]
 
         delta_position: Quantity = self.current_state[chan_ident] - home_value
-        self.sleep_delta_position(delta_position)
+        sleep_delta_position(
+            self.time_multiplier, self.current_params["velocity"], delta_position
+        )
 
         self.current_state[chan_ident] = home_value
         self.log.info(f"[MPC Stub] Channel {chan_ident} home")
@@ -146,7 +129,9 @@ class PolarizationControllerThorlabsMPC320Stub(
         delta_position = cast(
             Quantity, position_in_steps - self.current_state[chan_ident]
         )
-        self.sleep_delta_position(delta_position)
+        sleep_delta_position(
+            self.time_multiplier, self.current_params["velocity"], delta_position
+        )
 
         self.current_state[chan_ident] = cast(Quantity, position_in_steps)
 
