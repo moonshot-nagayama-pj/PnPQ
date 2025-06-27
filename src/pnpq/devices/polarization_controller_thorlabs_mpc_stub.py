@@ -5,6 +5,7 @@ import structlog
 from pint import Quantity
 
 from pnpq.apt.protocol import Address, UStatus, UStatusBits
+from pnpq.mock_util import sleep_delta_position
 
 from ..apt.protocol import (
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
@@ -24,6 +25,8 @@ class PolarizationControllerThorlabsMPC320Stub(
 ):
     log = structlog.get_logger()
 
+    time_multiplier: float = field(default=0.0)  # Simulate time if > 0.0
+
     # Setup channels for the device
     available_channels: frozenset[ChanIdent] = frozenset(
         [
@@ -33,7 +36,9 @@ class PolarizationControllerThorlabsMPC320Stub(
         ]
     )
 
-    current_params: PolarizationControllerParams = field(init=False)
+    current_params: PolarizationControllerParams = field(
+        default_factory=PolarizationControllerParams
+    )
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
 
@@ -42,17 +47,6 @@ class PolarizationControllerThorlabsMPC320Stub(
 
         # Current params will be set to a default state
         # To change them, use the set_params method
-        object.__setattr__(
-            self,
-            "current_params",
-            {
-                "velocity": 20 * pnpq_ureg.mpc320_velocity,
-                "home_position": 0 * pnpq_ureg.mpc320_steps,
-                "jog_step_1": 10 * pnpq_ureg.mpc320_steps,
-                "jog_step_2": 10 * pnpq_ureg.mpc320_steps,
-                "jog_step_3": 10 * pnpq_ureg.mpc320_steps,
-            },
-        )
 
         object.__setattr__(
             self,
@@ -66,6 +60,12 @@ class PolarizationControllerThorlabsMPC320Stub(
 
     def home(self, chan_ident: ChanIdent) -> None:
         home_value = self.current_params["home_position"]
+
+        delta_position: Quantity = self.current_state[chan_ident] - home_value
+        sleep_delta_position(
+            self.time_multiplier, self.current_params["velocity"], delta_position
+        )
+
         self.current_state[chan_ident] = home_value
         self.log.info(f"[MPC Stub] Channel {chan_ident} home")
 
@@ -125,6 +125,13 @@ class PolarizationControllerThorlabsMPC320Stub(
             )
 
         position_in_steps = position.to("mpc320_steps")
+        delta_position = cast(
+            Quantity, position_in_steps - self.current_state[chan_ident]
+        )
+        sleep_delta_position(
+            self.time_multiplier, self.current_params["velocity"], delta_position
+        )
+
         self.current_state[chan_ident] = cast(Quantity, position_in_steps)
 
         self.log.info(f"[MPC Stub] Channel {chan_ident} move to {position}")
