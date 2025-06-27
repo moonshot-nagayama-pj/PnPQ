@@ -81,7 +81,7 @@ class PolarizationControllerThorlabsMPC320Stub(
     def home(self, chan_ident: ChanIdent) -> None:
         home_value = self.current_params["home_position"]
 
-        delta_position: Quantity = home_value - self.current_state[chan_ident]
+        delta_position: Quantity = self.current_state[chan_ident] - home_value
         self.sleep_delta_position(delta_position)
 
         self.current_state[chan_ident] = home_value
