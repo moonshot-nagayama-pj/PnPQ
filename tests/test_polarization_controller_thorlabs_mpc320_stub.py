@@ -1,3 +1,4 @@
+from unittest import mock
 import pytest
 
 from pnpq.apt.protocol import ChanIdent, JogDirection
@@ -16,6 +17,10 @@ def stub_mpc_fixture() -> AbstractPolarizationControllerThorlabsMPC:
     mpc = PolarizationControllerThorlabsMPC320Stub()
     return mpc
 
+@pytest.fixture(name="mocked_sleep")
+def mock_sleep():
+    with mock.patch('time.sleep', mock.MagicMock()) as mocked_sleep:
+        yield mocked_sleep
 
 @pytest.mark.parametrize(
     "channel", [ChanIdent.CHANNEL_1, ChanIdent.CHANNEL_2, ChanIdent.CHANNEL_3]
@@ -30,33 +35,56 @@ def test_move_absolute(
     assert mpc_position.to("degree").magnitude == pytest.approx(45, abs=0.05)
 
 
-def test_move_absolute_sleep() -> None:
+@pytest.mark.parametrize(
+    "position, expected_sleep_time, expected_call_count",
+    [
+        (1370 * pnpq_ureg.mpc320_step, 0.5, 1),  # 1370 steps at 2 steps/second
+        (685 * pnpq_ureg.mpc320_step, 0.25, 1),  # 685 steps at 2 steps/second
+    ],
+)
+def test_move_absolute_sleep(mocked_sleep, position, expected_sleep_time, expected_call_count) -> None:
     """Test that the stub sleeps for the correct amount of time when moving."""
 
     params = PolarizationControllerParams()
-    params["velocity"] = 20 * pnpq_ureg.mpc320_velocity
+    params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
 
     mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_multiplier=1.0,
+        time_multiplier=1.0, current_params=params
     )
 
-    position = 100 * pnpq_ureg.degree
     mpc.move_absolute(ChanIdent.CHANNEL_1, position)
 
-    position2 = 0 * pnpq_ureg.degree
-    mpc.move_absolute(ChanIdent.CHANNEL_1, position2)
+    # Assert the sleep behavior
+    assert mocked_sleep.call_count == expected_call_count
+    assert mocked_sleep.call_args[0][0] == expected_sleep_time
 
-    # Not sure what to assert...
-
-
-def test_home_sleep() -> None:
+@pytest.mark.parametrize(
+    "initial_position, expected_sleep_time, expected_call_count",
+    [
+        (1370 * pnpq_ureg.mpc320_step, 0.5, 2),  # Move to 1370 steps, then home
+        (685 * pnpq_ureg.mpc320_step, 0.25, 2),  # Move to 685 steps, then home
+    ],
+)
+def test_home_sleep_parametrized(mocked_sleep, initial_position, expected_sleep_time, expected_call_count) -> None:
     """Test that the stub sleeps for the correct amount of time when homing."""
-    mpc = PolarizationControllerThorlabsMPC320Stub(time_multiplier=1.0)
-    position = 100 * pnpq_ureg.degree
-    mpc.move_absolute(ChanIdent.CHANNEL_1, position)
+
+    params = PolarizationControllerParams()
+    params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
+
+    mpc = PolarizationControllerThorlabsMPC320Stub(
+        time_multiplier=1.0, current_params=params
+    )
+
+    # Move to the initial position before homing
+    mpc.move_absolute(ChanIdent.CHANNEL_1, initial_position)
+
+    # Home the device
     mpc.home(ChanIdent.CHANNEL_1)
 
-    # Not sure what to assert...
+    # Assert the sleep behavior
+    assert mocked_sleep.call_count == expected_call_count  # One for move_absolute, one for home
+    assert mocked_sleep.call_args[0][0] == expected_sleep_time  # Homing time based on velocity
+
 
 
 @pytest.mark.parametrize(
