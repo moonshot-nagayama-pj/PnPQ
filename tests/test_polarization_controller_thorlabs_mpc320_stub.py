@@ -1,5 +1,8 @@
+from typing import Generator
 from unittest import mock
+
 import pytest
+from pint import Quantity
 
 from pnpq.apt.protocol import ChanIdent, JogDirection
 from pnpq.devices.polarization_controller_thorlabs_mpc import (
@@ -17,10 +20,12 @@ def stub_mpc_fixture() -> AbstractPolarizationControllerThorlabsMPC:
     mpc = PolarizationControllerThorlabsMPC320Stub()
     return mpc
 
+
 @pytest.fixture(name="mocked_sleep")
-def mock_sleep():
-    with mock.patch('time.sleep', mock.MagicMock()) as mocked_sleep:
+def mock_sleep() -> Generator[mock.MagicMock]:
+    with mock.patch("time.sleep", mock.MagicMock()) as mocked_sleep:
         yield mocked_sleep
+
 
 @pytest.mark.parametrize(
     "channel", [ChanIdent.CHANNEL_1, ChanIdent.CHANNEL_2, ChanIdent.CHANNEL_3]
@@ -42,7 +47,12 @@ def test_move_absolute(
         (685 * pnpq_ureg.mpc320_step, 0.25, 1),  # 685 steps at 2 steps/second
     ],
 )
-def test_move_absolute_sleep(mocked_sleep, position, expected_sleep_time, expected_call_count) -> None:
+def test_move_absolute_sleep(
+    mocked_sleep: mock.MagicMock,
+    position: Quantity,
+    expected_sleep_time: float,
+    expected_call_count: int,
+) -> None:
     """Test that the stub sleeps for the correct amount of time when moving."""
 
     params = PolarizationControllerParams()
@@ -58,6 +68,7 @@ def test_move_absolute_sleep(mocked_sleep, position, expected_sleep_time, expect
     assert mocked_sleep.call_count == expected_call_count
     assert mocked_sleep.call_args[0][0] == expected_sleep_time
 
+
 @pytest.mark.parametrize(
     "initial_position, expected_sleep_time, expected_call_count",
     [
@@ -65,7 +76,12 @@ def test_move_absolute_sleep(mocked_sleep, position, expected_sleep_time, expect
         (685 * pnpq_ureg.mpc320_step, 0.25, 2),  # Move to 685 steps, then home
     ],
 )
-def test_home_sleep_parametrized(mocked_sleep, initial_position, expected_sleep_time, expected_call_count) -> None:
+def test_home_sleep_parametrized(
+    mocked_sleep: mock.MagicMock,
+    initial_position: Quantity,
+    expected_sleep_time: float,
+    expected_call_count: int,
+) -> None:
     """Test that the stub sleeps for the correct amount of time when homing."""
 
     params = PolarizationControllerParams()
@@ -82,9 +98,12 @@ def test_home_sleep_parametrized(mocked_sleep, initial_position, expected_sleep_
     mpc.home(ChanIdent.CHANNEL_1)
 
     # Assert the sleep behavior
-    assert mocked_sleep.call_count == expected_call_count  # One for move_absolute, one for home
-    assert mocked_sleep.call_args[0][0] == expected_sleep_time  # Homing time based on velocity
-
+    assert (
+        mocked_sleep.call_count == expected_call_count
+    )  # One for move_absolute, one for home
+    assert (
+        mocked_sleep.call_args[0][0] == expected_sleep_time
+    )  # Homing time based on velocity
 
 
 @pytest.mark.parametrize(
