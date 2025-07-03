@@ -627,7 +627,7 @@ def test_AptMessage_MGMSG_POL_SET_PARAMS_from_bytes() -> None:
 
 
 def test_AptMessage_MGMSG_MOT_MOVE_JOG_from_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_MOVE_JOG.from_bytes(b"\x6A\x04\x01\x02\x01\x50")
+    msg = AptMessage_MGMSG_MOT_MOVE_JOG.from_bytes(b"\x6a\x04\x01\x02\x01\x50")
     assert msg.message_id == 0x046A
     assert msg.chan_ident == 0x01
     assert msg.jog_direction == 0x02
@@ -642,7 +642,7 @@ def test_AptMessage_MGMSG_MOT_MOVE_JOG_to_bytes() -> None:
         jog_direction=JogDirection.FORWARD,
         source=Address.HOST_CONTROLLER,
     )
-    assert msg.to_bytes() == b"\x6A\x04\x01\x01\x50\x01"
+    assert msg.to_bytes() == b"\x6a\x04\x01\x01\x50\x01"
 
 
 def test_AptMessage_MGMSG_MOT_MOVE_STOP_from_bytes() -> None:
