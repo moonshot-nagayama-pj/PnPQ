@@ -3,6 +3,13 @@ import time
 
 from serial import Serial
 
+from pnpq.apt.protocol import (
+    Address,
+    AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
+    ChanIdent,
+    HomeDirection,
+    LimitSwitch,
+)
 from pnpq.devices.utils import check_usb_hub_connected, get_available_port
 from pnpq.errors import (
     DeviceDisconnectedError,
@@ -120,6 +127,17 @@ class Waveplate:
     def connect(self) -> None:
         self.logger.info("connecting...")
         self.conn.open()
+        home_params_message = AptMessage_MGMSG_MOT_SET_HOMEPARAMS(
+            destination=Address.GENERIC_USB,
+            source=Address.HOST_CONTROLLER,
+            chan_ident=ChanIdent.CHANNEL_1,
+            home_direction=HomeDirection.REVERSE,
+            limit_switch=LimitSwitch.HARDWARE_REVERSE,
+            home_velocity=73300775,
+            offset_distance=546133,
+        )
+        self.conn.write(home_params_message.to_bytes())
+        time.sleep(1)
         self.logger.info("connected")
 
     def identify(self) -> None:
