@@ -109,6 +109,10 @@ class PolarizationControllerThorlabsMPC320Stub(
         current_value = self.current_state[chan_ident].to("mpc320_steps").magnitude
         jog_value_magnitude = jog_value.to("mpc320_steps").magnitude
 
+        sleep_delta_position(
+            self.time_scaling_factor, self.current_params["velocity"], jog_value
+        )
+
         if jog_direction == JogDirection.FORWARD:
             new_value_magnitude = current_value + jog_value_magnitude
         else:  # Reverse

@@ -69,6 +69,33 @@ def test_move_absolute_sleep(
     # Assert the sleep behavior
     assert mocked_sleep.call_count == 1
     assert mocked_sleep.call_args[0][0] == expected_sleep_time
+@pytest.mark.parametrize(
+    "jog_step, jog_direction, expected_sleep_time, time_scaling_factor",
+    [
+        (1370 * pnpq_ureg.mpc320_step, JogDirection.FORWARD, 0.5, 1),  # 1370 steps at 1370*2 steps/second
+        (685 * pnpq_ureg.mpc320_step, JogDirection.FORWARD, 0.25, 1),  # 685 steps at 1370*2 steps/second
+    ],
+)
+def test_jog_sleep(
+    mocked_sleep: mock.MagicMock,
+    position: Quantity,
+    expected_sleep_time: float,
+    time_scaling_factor: float,
+) -> None:
+    """Test that the stub sleeps for the correct amount of time when jogging."""
+
+    params = PolarizationControllerParams()
+    params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
+
+    mpc = PolarizationControllerThorlabsMPC320Stub(
+        time_scaling_factor=time_scaling_factor, current_params=params
+    )
+
+    mpc.move_absolute(ChanIdent.CHANNEL_1, position)
+
+    # Assert the sleep behavior
+    assert mocked_sleep.call_count == 1
+    assert mocked_sleep.call_args[0][0] == expected_sleep_time
 
 
 def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
@@ -82,6 +109,7 @@ def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
         PolarizationControllerThorlabsMPC320Stub(
             time_scaling_factor=-1.0, current_params=params
         )
+
 
 
 @pytest.mark.parametrize(
