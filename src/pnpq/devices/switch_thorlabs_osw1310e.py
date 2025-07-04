@@ -42,7 +42,7 @@ class Switch:
     #        self.conn.write(b'S ?\x0A')
 
     def bar_state(self) -> None:
-        self.conn.write(b"S 1\x0A")
+        self.conn.write(b"S 1\x0a")
 
     def cross(self) -> None:
-        self.conn.write(b"S 2\x0A")
+        self.conn.write(b"S 2\x0a")
