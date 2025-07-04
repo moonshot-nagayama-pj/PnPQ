@@ -347,7 +347,6 @@ class Waveplate:
 
         self.home()
         time.sleep(2)
-
         self.relative_home = degree
         self.rotate(degree)
 
