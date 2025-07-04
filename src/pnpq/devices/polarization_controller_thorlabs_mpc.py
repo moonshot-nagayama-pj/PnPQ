@@ -1,8 +1,9 @@
 import threading
 import time
 from abc import ABC, abstractmethod
+from collections import UserDict
 from dataclasses import dataclass, field
-from typing import TypedDict, cast
+from typing import Any, cast
 
 import structlog
 from pint import Quantity
@@ -30,17 +31,27 @@ from ..apt.protocol import (
 from ..units import pnpq_ureg
 
 
-class PolarizationControllerParams(TypedDict):
-    #: Dimensionality must be ([angle] / [time]) or mpc320_velocity
-    velocity: Quantity
-    #: Dimensionality must be [angle] or mpc320_step
-    home_position: Quantity
-    #: Dimensionality must be [angle] or mpc320_step
-    jog_step_1: Quantity
-    #: Dimensionality must be [angle] or mpc320_step
-    jog_step_2: Quantity
-    #: Dimensionality must be [angle] or mpc320_step
-    jog_step_3: Quantity
+class PolarizationControllerParams(UserDict[str, Quantity]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        # Initialize with default values if not provided
+        self.__setitem__("velocity", 20 * pnpq_ureg.mpc320_velocity)
+        self.__setitem__("home_position", 0 * pnpq_ureg.mpc320_step)
+        self.__setitem__("jog_step_1", 10 * pnpq_ureg.mpc320_step)
+        self.__setitem__("jog_step_2", 10 * pnpq_ureg.mpc320_step)
+        self.__setitem__("jog_step_3", 10 * pnpq_ureg.mpc320_step)
+
+    def __setitem__(self, key: str, value: Quantity | None) -> None:
+        if value is None:
+            return
+
+        if key == "velocity":
+            super().__setitem__(key, cast(Quantity, value.to("mpc320_velocity")))
+        elif key in ("home_position", "jog_step_1", "jog_step_2", "jog_step_3"):
+            super().__setitem__(key, cast(Quantity, value.to("mpc320_step")))
+        else:
+            raise ValueError(f"Invalid key '{key}'.")
 
 
 class AbstractPolarizationControllerThorlabsMPC(ABC):
@@ -336,13 +347,12 @@ class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMP
             lambda message: (isinstance(message, AptMessage_MGMSG_POL_GET_PARAMS)),
         )
         assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
-        result: PolarizationControllerParams = {
-            "velocity": params.velocity * pnpq_ureg.mpc320_velocity,
-            "home_position": params.home_position * pnpq_ureg.mpc320_step,
-            "jog_step_1": params.jog_step_1 * pnpq_ureg.mpc320_step,
-            "jog_step_2": params.jog_step_2 * pnpq_ureg.mpc320_step,
-            "jog_step_3": params.jog_step_3 * pnpq_ureg.mpc320_step,
-        }
+        result = PolarizationControllerParams()
+        result["velocity"] = params.velocity * pnpq_ureg.mpc320_velocity
+        result["home_position"] = params.home_position * pnpq_ureg.mpc320_step
+        result["jog_step_1"] = params.jog_step_1 * pnpq_ureg.mpc320_step
+        result["jog_step_2"] = params.jog_step_2 * pnpq_ureg.mpc320_step
+        result["jog_step_3"] = params.jog_step_3 * pnpq_ureg.mpc320_step
         return result
 
     def set_channel_enabled(self, chan_ident: ChanIdent, enabled: bool) -> None:
@@ -375,19 +385,15 @@ class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMP
         jog_step_3: None | Quantity = None,
     ) -> None:
         # First load existing params
-
         params = self.get_params()
-        # Replace params that need to be changed
-        if velocity is not None:
-            params["velocity"] = cast(Quantity, velocity.to("mpc320_velocity"))
-        if home_position is not None:
-            params["home_position"] = cast(Quantity, home_position.to("mpc320_step"))
-        if jog_step_1 is not None:
-            params["jog_step_1"] = cast(Quantity, jog_step_1.to("mpc320_step"))
-        if jog_step_2 is not None:
-            params["jog_step_2"] = cast(Quantity, jog_step_2.to("mpc320_step"))
-        if jog_step_3 is not None:
-            params["jog_step_3"] = cast(Quantity, jog_step_3.to("mpc320_step"))
+
+        # Update params with new values
+        params["velocity"] = velocity
+        params["home_position"] = home_position
+        params["jog_step_1"] = jog_step_1
+        params["jog_step_2"] = jog_step_2
+        params["jog_step_3"] = jog_step_3
+
         # Send params to device
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_POL_SET_PARAMS(
