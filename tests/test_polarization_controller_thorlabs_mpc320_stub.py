@@ -61,7 +61,7 @@ def test_move_absolute_sleep(
     params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
 
     mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_multiplier=time_multiplier, current_params=params
+        time_scaling_factor=time_multiplier, current_params=params
     )
 
     mpc.move_absolute(ChanIdent.CHANNEL_1, position)
@@ -80,7 +80,7 @@ def test_move_absolute_sleep_invalid_time_multiplier() -> None:
         ValueError, match="Time multiplier must be greater than or equal to 0.0."
     ):
         PolarizationControllerThorlabsMPC320Stub(
-            time_multiplier=-1.0, current_params=params
+            time_scaling_factor=-1.0, current_params=params
         )
 
 
@@ -105,7 +105,7 @@ def test_home_sleep_parametrized(
     params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
 
     mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_multiplier=time_multiplier, current_params=params
+        time_scaling_factor=time_multiplier, current_params=params
     )
 
     # Move to the initial position before homing
