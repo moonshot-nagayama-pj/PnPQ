@@ -46,23 +46,12 @@ class PolarizationControllerParams(UserDict[str, Quantity]):
         if value is None:
             return
 
-        converted_value = None
-
         if key == "velocity":
-            converted_value = cast(Quantity, value.to("mpc320_velocity"))
-        if key == "home_position":
-            converted_value = cast(Quantity, value.to("mpc320_step"))
-        if key == "jog_step_1":
-            converted_value = cast(Quantity, value.to("mpc320_step"))
-        if key == "jog_step_2":
-            converted_value = cast(Quantity, value.to("mpc320_step"))
-        if key == "jog_step_3":
-            converted_value = cast(Quantity, value.to("mpc320_step"))
-
-        if converted_value is None:
+            super().__setitem__(key, cast(Quantity, value.to("mpc320_velocity")))
+        else if key in ("home_position", "jog_step_1", "jog_step_2", "jog_step_3"):
+            super().__setitem__(key, cast(Quantity, value.to("mpc320_step")))
+        else:
             raise ValueError(f"Invalid key '{key}'.")
-
-        super().__setitem__(key, converted_value)
 
 
 class AbstractPolarizationControllerThorlabsMPC(ABC):
