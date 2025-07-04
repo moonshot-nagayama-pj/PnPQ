@@ -22,7 +22,7 @@ def stub_mpc_fixture() -> AbstractPolarizationControllerThorlabsMPC:
 
 
 @pytest.fixture(name="mocked_sleep")
-def mock_sleep() -> Generator[mock.MagicMock]:
+def mocked_sleep_fixture() -> Generator[mock.MagicMock]:
     with mock.patch("time.sleep", mock.MagicMock()) as mocked_sleep:
         yield mocked_sleep
 
