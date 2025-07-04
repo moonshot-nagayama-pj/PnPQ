@@ -5,7 +5,7 @@ import structlog
 from pint import Quantity
 
 from pnpq.apt.protocol import Address, UStatus, UStatusBits
-from pnpq.mock_util import sleep_delta_position
+from pnpq.stub_util import sleep_delta_position
 
 from ..apt.protocol import (
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
@@ -44,6 +44,9 @@ class PolarizationControllerThorlabsMPC320Stub(
 
     def __post_init__(self) -> None:
         self.log.info("[MPC Stub] Initialized")
+
+        if self.time_multiplier < 0.0:
+            raise ValueError("Time multiplier must be greater than or equal to 0.0.")
 
         # Current params will be set to a default state
         # To change them, use the set_params method

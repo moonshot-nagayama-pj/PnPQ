@@ -41,17 +41,19 @@ def test_move_absolute(
 
 
 @pytest.mark.parametrize(
-    "position, expected_sleep_time, expected_call_count",
+    "position, expected_sleep_time, time_multiplier",
     [
-        (1370 * pnpq_ureg.mpc320_step, 0.5, 1),  # 1370 steps at 2 steps/second
-        (685 * pnpq_ureg.mpc320_step, 0.25, 1),  # 685 steps at 2 steps/second
+        (1370 * pnpq_ureg.mpc320_step, 0.5, 1),  # 1370 steps at 1370*2 steps/second
+        (685 * pnpq_ureg.mpc320_step, 0.25, 1),  # 685 steps at 1370*2 steps/second
+        (1370 * pnpq_ureg.mpc320_step, 1.0, 2),  # Two times more time
+        (685 * pnpq_ureg.mpc320_step, 0.5, 2),
     ],
 )
 def test_move_absolute_sleep(
     mocked_sleep: mock.MagicMock,
     position: Quantity,
     expected_sleep_time: float,
-    expected_call_count: int,
+    time_multiplier: float,
 ) -> None:
     """Test that the stub sleeps for the correct amount of time when moving."""
 
@@ -59,28 +61,43 @@ def test_move_absolute_sleep(
     params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
 
     mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_multiplier=1.0, current_params=params
+        time_multiplier=time_multiplier, current_params=params
     )
 
     mpc.move_absolute(ChanIdent.CHANNEL_1, position)
 
     # Assert the sleep behavior
-    assert mocked_sleep.call_count == expected_call_count
+    assert mocked_sleep.call_count == 1
     assert mocked_sleep.call_args[0][0] == expected_sleep_time
 
 
+def test_move_absolute_sleep_invalid_time_multiplier() -> None:
+    """Test that an invalid time multiplier raises an error."""
+    params = PolarizationControllerParams()
+    params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
+
+    with pytest.raises(
+        ValueError, match="Time multiplier must be greater than or equal to 0.0."
+    ):
+        PolarizationControllerThorlabsMPC320Stub(
+            time_multiplier=-1.0, current_params=params
+        )
+
+
 @pytest.mark.parametrize(
-    "initial_position, expected_sleep_time, expected_call_count",
+    "initial_position, expected_sleep_time, time_multiplier",
     [
-        (1370 * pnpq_ureg.mpc320_step, 0.5, 2),  # Move to 1370 steps, then home
-        (685 * pnpq_ureg.mpc320_step, 0.25, 2),  # Move to 685 steps, then home
+        (1370 * pnpq_ureg.mpc320_step, 0.5, 1),  # Move to 1370 steps, then home
+        (685 * pnpq_ureg.mpc320_step, 0.25, 1),  # Move to 685 steps, then home
+        (1370 * pnpq_ureg.mpc320_step, 1.0, 2),  # Two times more time
+        (685 * pnpq_ureg.mpc320_step, 0.5, 2),
     ],
 )
 def test_home_sleep_parametrized(
     mocked_sleep: mock.MagicMock,
     initial_position: Quantity,
     expected_sleep_time: float,
-    expected_call_count: int,
+    time_multiplier: float,
 ) -> None:
     """Test that the stub sleeps for the correct amount of time when homing."""
 
@@ -88,7 +105,7 @@ def test_home_sleep_parametrized(
     params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
 
     mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_multiplier=1.0, current_params=params
+        time_multiplier=time_multiplier, current_params=params
     )
 
     # Move to the initial position before homing
@@ -98,9 +115,7 @@ def test_home_sleep_parametrized(
     mpc.home(ChanIdent.CHANNEL_1)
 
     # Assert the sleep behavior
-    assert (
-        mocked_sleep.call_count == expected_call_count
-    )  # One for move_absolute, one for home
+    assert mocked_sleep.call_count == 2  # One for move_absolute, one for home
     assert (
         mocked_sleep.call_args[0][0] == expected_sleep_time
     )  # Homing time based on velocity
