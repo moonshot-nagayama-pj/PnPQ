@@ -41,7 +41,7 @@ def test_move_absolute(
 
 
 @pytest.mark.parametrize(
-    "position, expected_sleep_time, time_multiplier",
+    "position, expected_sleep_time, time_scaling_factor",
     [
         (1370 * pnpq_ureg.mpc320_step, 0.5, 1),  # 1370 steps at 1370*2 steps/second
         (685 * pnpq_ureg.mpc320_step, 0.25, 1),  # 685 steps at 1370*2 steps/second
@@ -53,7 +53,7 @@ def test_move_absolute_sleep(
     mocked_sleep: mock.MagicMock,
     position: Quantity,
     expected_sleep_time: float,
-    time_multiplier: float,
+    time_scaling_factor: float,
 ) -> None:
     """Test that the stub sleeps for the correct amount of time when moving."""
 
@@ -61,7 +61,7 @@ def test_move_absolute_sleep(
     params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
 
     mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_scaling_factor=time_multiplier, current_params=params
+        time_scaling_factor=time_scaling_factor, current_params=params
     )
 
     mpc.move_absolute(ChanIdent.CHANNEL_1, position)
@@ -71,7 +71,7 @@ def test_move_absolute_sleep(
     assert mocked_sleep.call_args[0][0] == expected_sleep_time
 
 
-def test_move_absolute_sleep_invalid_time_multiplier() -> None:
+def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
     """Test that an invalid time multiplier raises an error."""
     params = PolarizationControllerParams()
     params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
@@ -85,7 +85,7 @@ def test_move_absolute_sleep_invalid_time_multiplier() -> None:
 
 
 @pytest.mark.parametrize(
-    "initial_position, expected_sleep_time, time_multiplier",
+    "initial_position, expected_sleep_time, time_scaling_factor",
     [
         (1370 * pnpq_ureg.mpc320_step, 0.5, 1),  # Move to 1370 steps, then home
         (685 * pnpq_ureg.mpc320_step, 0.25, 1),  # Move to 685 steps, then home
@@ -97,7 +97,7 @@ def test_home_sleep_parametrized(
     mocked_sleep: mock.MagicMock,
     initial_position: Quantity,
     expected_sleep_time: float,
-    time_multiplier: float,
+    time_scaling_factor: float,
 ) -> None:
     """Test that the stub sleeps for the correct amount of time when homing."""
 
@@ -105,7 +105,7 @@ def test_home_sleep_parametrized(
     params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
 
     mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_scaling_factor=time_multiplier, current_params=params
+        time_scaling_factor=time_scaling_factor, current_params=params
     )
 
     # Move to the initial position before homing
