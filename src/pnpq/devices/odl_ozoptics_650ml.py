@@ -145,9 +145,7 @@ class OdlOzOptics(OpticalDelayLine):
         self.conn.write(serial_cmd.encode())
 
     def serial_read(self) -> str:
-        device_output = (self.conn.read_until(expected=bytearray(b"Done"))).decode(
-            "iso-8859-1"
-        )
+        device_output = (self.conn.read_until(expected=b"Done")).decode("iso-8859-1")
         self.logger.debug("Device read successful: %s", device_output)
         if "Done" not in device_output:
             raise RuntimeError("Reading from the device failed (Timeout)!")

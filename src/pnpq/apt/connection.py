@@ -113,14 +113,16 @@ class AptConnection:
 
         port_found = False
         port = None
-        for port in serial.tools.list_ports.comports():
-            if port.serial_number == self.serial_number:
+        for possible_port in serial.tools.list_ports.comports():
+            if possible_port.serial_number == self.serial_number:
+                port = possible_port
                 port_found = True
                 break
         if not port_found:
             raise ValueError(
                 f"Serial number {self.serial_number} could not be found, failing intialization."
             )
+        assert port is not None
 
         # Initializing the connection by passing a port to the Serial
         # constructor immediately opens the connection. It is not
