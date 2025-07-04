@@ -149,12 +149,6 @@ class Waveplate:
         self.logger.info("call home cmd")
         self.__ensure_port_open()
 
-        self.conn.write(HOME_REQ_COMMAND)
-        time.sleep(0.5)
-
-        self.conn.write(HOME_SET_COMMAND)
-        time.sleep(0.5)
-
         self.conn.write(HOME_MOVE_COMMAND)
         time.sleep(0.5)
 
@@ -352,6 +346,8 @@ class Waveplate:
         self.__ensure_valid_degree(degree)
 
         self.home()
+        time.sleep(2)
+
         self.relative_home = degree
         self.rotate(degree)
 
