@@ -10,6 +10,7 @@ from pnpq.devices.waveplate_thorlabs_k10cr1 import (
     WaveplateJogParams,
     WaveplateVelocityParams,
 )
+from pnpq.stub_util import sleep_delta_position
 
 from ..apt.protocol import (
     ChanIdent,
@@ -28,6 +29,8 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
     log = structlog.get_logger()
 
+    time_scaling_factor: float = field(default=0.0)  # Simulate time if > 0.0
+
     current_velocity_params: WaveplateVelocityParams = field(init=False)
     current_jog_params: WaveplateJogParams = field(init=False)
     current_home_params: WaveplateHomeParams = field(init=False)
@@ -37,6 +40,9 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
     def __post_init__(self) -> None:
         self.log.info("[Waveplate Stub] Initialized")
+
+        if self.time_scaling_factor < 0.0:
+            raise ValueError("Time multiplier must be greater than or equal to 0.0.")
 
         object.__setattr__(
             self,
@@ -92,6 +98,16 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         # Convert distance to K1CR10 steps
         # TODO: Check if input is too large or too small for the device
         position_in_steps = position.to("k10cr1_step")
+
+        delta_position = cast(
+            Quantity, position_in_steps - self.current_state[self._chan_ident]
+        )
+        sleep_delta_position(
+            self.time_scaling_factor,
+            self.get_velparams()["maximum_velocity"],
+            delta_position,
+        )  # NOTE: Should it be maximum_velocity or minimum_velocity? Or something in between?
+
         self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
 
         self.log.info(
@@ -194,6 +210,12 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         current_value = self.current_state[self._chan_ident].to("k10cr1_step").magnitude
         jog_value_magnitude = jog_value.to("k10cr1_step").magnitude
 
+        sleep_delta_position(
+            self.time_scaling_factor,
+            self.current_jog_params["jog_maximum_velocity"],
+            jog_value,
+        )
+
         if jog_direction == JogDirection.FORWARD:
             new_value_magnitude = current_value + jog_value_magnitude
         else:  # Reverse
@@ -212,7 +234,18 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
             "homed",
             True,
         )
-        self.current_state[self._chan_ident] = 0 * pnpq_ureg.k10cr1_step
+        home_value = 0 * pnpq_ureg.k10cr1_step
+
+        delta_position: Quantity = self.current_state[self._chan_ident] - home_value
+        sleep_delta_position(
+            self.time_scaling_factor,
+            self.current_home_params[
+                "home_velocity"
+            ],  # NOTE: Should it be maximum_velocity?
+            delta_position,
+        )
+
+        self.current_state[self._chan_ident] = home_value
 
         # TODO: Remove f string
         self.log.info(f"[Waveplate Stub] Channel {self._chan_ident} home")

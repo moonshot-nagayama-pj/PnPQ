@@ -1,3 +1,7 @@
+from typing import Generator
+from unittest import mock
+
+from pint import Quantity
 import pytest
 
 from pnpq.apt.protocol import (
@@ -8,6 +12,7 @@ from pnpq.apt.protocol import (
     LimitSwitch,
     StopMode,
 )
+from pnpq.devices.polarization_controller_thorlabs_mpc import PolarizationControllerParams
 from pnpq.devices.waveplate_thorlabs_k10cr1 import AbstractWaveplateThorlabsK10CR1
 from pnpq.devices.waveplate_thorlabs_k10cr1_stub import WaveplateThorlabsK10CR1Stub
 from pnpq.units import pnpq_ureg
@@ -17,6 +22,11 @@ from pnpq.units import pnpq_ureg
 def stub_waveplate_fixture() -> AbstractWaveplateThorlabsK10CR1:
     waveplate = WaveplateThorlabsK10CR1Stub()
     return waveplate
+
+@pytest.fixture(name="mocked_sleep")
+def mocked_sleep_fixture() -> Generator[mock.MagicMock]:
+    with mock.patch("time.sleep", mock.MagicMock()) as mocked_sleep:
+        yield mocked_sleep
 
 
 def test_move_absolute(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
@@ -29,6 +39,34 @@ def test_move_absolute(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
     waveplate_position = stub_waveplate.current_state[ChanIdent.CHANNEL_1]  # type: ignore
 
     assert waveplate_position.to("degree").magnitude == pytest.approx(45)
+
+
+@pytest.mark.parametrize(
+    "position, expected_sleep_time, time_scaling_factor",
+    [
+        (1370 * pnpq_ureg.k10cr1_step, 0.5, 1),  # 1370 steps at 1370*2 steps/second
+    ],
+)
+def test_move_absolute_sleep( # TODO: replace mpc320 to k10cr1
+    mocked_sleep: mock.MagicMock,
+    position: Quantity,
+    expected_sleep_time: float,
+    time_scaling_factor: float,
+) -> None:
+    """Test that the stub sleeps for the correct amount of time when moving."""
+
+    params = PolarizationControllerParams()
+    params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
+
+    mpc = PolarizationControllerThorlabsMPC320Stub(
+        time_scaling_factor=time_scaling_factor, current_params=params
+    )
+
+    mpc.move_absolute(ChanIdent.CHANNEL_1, position)
+
+    # Assert the sleep behavior
+    assert mocked_sleep.call_count == 1
+    assert mocked_sleep.call_args[0][0] == expected_sleep_time
 
 
 def test_jog(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
