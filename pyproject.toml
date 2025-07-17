@@ -1,10 +1,12 @@
 [project]
 name = "pnpq"
-dynamic = ["version"]
+version = "0.1.0.dev"
 description = "PnPQ is a python library package for controlling optical devices in quantum networks"
 authors = [
     { name = "Amin Taherkhani", email = "amin@sfc.wide.ad.jp" },
     { name = "Andrew Todd", email = "at@auspicacious.org" },
+    { name = "Tom Shen", email = "tomshen@keio.jp" },
+    { name = "Lars Matsumiya", email = "lm@keio.jp" },
 ]
 dependencies = [
     "pyserial>=3.5",
@@ -58,3 +60,9 @@ disable = ["raw-checker-failed", "bad-inline-option", "locally-disabled", "file-
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

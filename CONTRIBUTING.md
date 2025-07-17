@@ -29,3 +29,21 @@ If you wish to integrate our work into your own projects, please follow the attr
 ## Code of conduct
 
 In order to provide a safe and welcoming environment for all people to contribute to our project, we have adopted a code of conduct, which you can read in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
+## Making a release
+
+Follow the steps below in order to create and publish a release for PnPQ
+
+1. Decide to create a release
+2. Ensures all PRs have user-friendly titles
+3. Create a `release-A.B.C` branch
+4. Remove the `.dev` suffix in the version field in `pyproject.toml` (update version if necessary)
+5. Commit `git commit -am 'release version A.B.C'` and push to branch
+6. Create a tag `git tag -am 'release version A.B.C' vA.B.C` and push `git push origin v0.1.2`
+7. Wait for the release check script to finish
+8. Edit the release in the draft (the generate release note function is sufficient for most cases)
+9. Publish the draft page, this will initiate the upload script
+10. Approve the upload script
+11. Start the next version (with the `.dev` prefix)
+12. Create a PR to merge this branch
+13. Wait for approval to merge the PR, and finish!
