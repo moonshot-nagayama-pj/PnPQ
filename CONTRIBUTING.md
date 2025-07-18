@@ -47,3 +47,5 @@ Follow the steps below in order to create and publish a release for PnPQ
 1. Run `uv sync`.
 1. Create a PR to merge this branch.
 1. Wait for approval to merge the PR, and finish!
+
+The steps are modified from the [Pallets release procedure](https://palletsprojects.com/contributing/release).
