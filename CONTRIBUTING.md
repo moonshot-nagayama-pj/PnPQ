@@ -34,16 +34,16 @@ In order to provide a safe and welcoming environment for all people to contribut
 
 Follow the steps below in order to create and publish a release for PnPQ
 
-1. Decide to create a release
-2. Ensures all PRs have user-friendly titles
-3. Create a `release-A.B.C` branch
-4. Remove the `.dev` suffix in the version field in `pyproject.toml` (update version if necessary)
-5. Commit `git commit -am 'Release version A.B.C'` and push changes to branch
-6. Create a tag `git tag -am 'Release version A.B.C' vA.B.C` and push `git push origin vA.B.C`
-7. Wait for the release check script to finish
-8. Edit the release in the draft (the generate release note function is sufficient for most cases)
-9. Publish the draft page, this will initiate the upload script
-10. Approve the upload script
-11. Start the next version (with the `.dev` prefix)
-12. Create a PR to merge this branch
-13. Wait for approval to merge the PR, and finish!
+1. Decide to create a release.
+1. Create a `release-A.B.C` branch.
+1. Remove the `.dev` suffix in the version field in `pyproject.toml` (update version if necessary).
+1. Commit `git commit -am 'Release version A.B.C'` and push changes to branch.
+1. Create a tag `git tag -am 'Release version A.B.C' vA.B.C` and push `git push origin vA.B.C`.
+1. Wait for the release check script to finish.
+1. Edit the release in the draft (the generate release note function is sufficient for most cases).
+1. Publish the draft page.
+1. Approve the publish action.
+1. Start the next version (with the `.dev` prefix).
+1. Run `uv sync`.
+1. Create a PR to merge this branch.
+1. Wait for approval to merge the PR, and finish!
