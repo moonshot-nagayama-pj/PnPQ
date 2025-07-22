@@ -42,9 +42,8 @@ Follow the steps below in order to create and publish a release for PnPQ
 
 1. Decide to create a release.
 1. Run `./bin/release.bash` script and wait for it to finish.
-1. Wait for the release check script in GitHub Action to finish.
-1. Edit the release in the draft (the generate release note function is sufficient for most cases).
-1. Publish the release draft.
+1. Wait for the release check script in GitHub Actions to finish.
+1. Edit and publish the draft in [Releases](https://github.com/moonshot-nagayama-pj/PnPQ/releases) (the generate release note function is sufficient for most cases).
 1. Approve the publish action.
 1. Create a PR to merge this branch (the script should open a new PR automatically).
 1. Wait for approval to merge the PR, and finish!
