@@ -31,9 +31,13 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
     time_scaling_factor: float = field(default=0.0)  # Simulate time if > 0.0
 
-    current_velocity_params: WaveplateVelocityParams = field(default_factory=WaveplateVelocityParams)
+    current_velocity_params: WaveplateVelocityParams = field(
+        default_factory=WaveplateVelocityParams
+    )
     current_jog_params: WaveplateJogParams = field(default_factory=WaveplateJogParams)
-    current_home_params: WaveplateHomeParams = field(default_factory=WaveplateHomeParams)
+    current_home_params: WaveplateHomeParams = field(
+        default_factory=WaveplateHomeParams
+    )
     homed: bool = field(default=False, init=False)
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)

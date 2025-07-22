@@ -1,8 +1,8 @@
 from typing import Generator
 from unittest import mock
 
-from pint import Quantity
 import pytest
+from pint import Quantity
 
 from pnpq.apt.protocol import (
     ChanIdent,
@@ -12,10 +12,10 @@ from pnpq.apt.protocol import (
     LimitSwitch,
     StopMode,
 )
-from pnpq.devices.polarization_controller_thorlabs_mpc import (
-    PolarizationControllerParams,
+from pnpq.devices.waveplate_thorlabs_k10cr1 import (
+    AbstractWaveplateThorlabsK10CR1,
+    WaveplateVelocityParams,
 )
-from pnpq.devices.waveplate_thorlabs_k10cr1 import AbstractWaveplateThorlabsK10CR1, WaveplateVelocityParams
 from pnpq.devices.waveplate_thorlabs_k10cr1_stub import WaveplateThorlabsK10CR1Stub
 from pnpq.units import pnpq_ureg
 
@@ -59,9 +59,12 @@ def test_move_absolute_sleep(
     """Test that the stub sleeps for the correct amount of time when moving."""
 
     waveplate_velocity_params = WaveplateVelocityParams()
-    waveplate_velocity_params["maximum_velocity"] = 136533 * pnpq_ureg["k10cr1_step / second"]
+    waveplate_velocity_params["maximum_velocity"] = (
+        136533 * pnpq_ureg["k10cr1_step / second"]
+    )
     waveplate = WaveplateThorlabsK10CR1Stub(
-        time_scaling_factor=time_scaling_factor, current_velocity_params=waveplate_velocity_params
+        time_scaling_factor=time_scaling_factor,
+        current_velocity_params=waveplate_velocity_params,
     )
 
     waveplate.move_absolute(position)
@@ -75,7 +78,7 @@ def test_jog(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
     position = 100 * pnpq_ureg.k10cr1_step
     stub_waveplate.move_absolute(position)
 
-    stub_waveplate.current_jog_params["jog_step_size"] = 10 * pnpq_ureg.k10cr1_step
+    stub_waveplate.get_jogparams()["jog_step_size"] = 10 * pnpq_ureg.k10cr1_step
 
     stub_waveplate.jog(JogDirection.FORWARD)
 
