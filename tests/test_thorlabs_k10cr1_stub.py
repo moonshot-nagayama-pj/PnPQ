@@ -12,8 +12,10 @@ from pnpq.apt.protocol import (
     LimitSwitch,
     StopMode,
 )
-from pnpq.devices.polarization_controller_thorlabs_mpc import PolarizationControllerParams
-from pnpq.devices.waveplate_thorlabs_k10cr1 import AbstractWaveplateThorlabsK10CR1
+from pnpq.devices.polarization_controller_thorlabs_mpc import (
+    PolarizationControllerParams,
+)
+from pnpq.devices.waveplate_thorlabs_k10cr1 import AbstractWaveplateThorlabsK10CR1, WaveplateVelocityParams
 from pnpq.devices.waveplate_thorlabs_k10cr1_stub import WaveplateThorlabsK10CR1Stub
 from pnpq.units import pnpq_ureg
 
@@ -22,6 +24,7 @@ from pnpq.units import pnpq_ureg
 def stub_waveplate_fixture() -> AbstractWaveplateThorlabsK10CR1:
     waveplate = WaveplateThorlabsK10CR1Stub()
     return waveplate
+
 
 @pytest.fixture(name="mocked_sleep")
 def mocked_sleep_fixture() -> Generator[mock.MagicMock]:
@@ -44,10 +47,10 @@ def test_move_absolute(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
 @pytest.mark.parametrize(
     "position, expected_sleep_time, time_scaling_factor",
     [
-        (1370 * pnpq_ureg.k10cr1_step, 0.5, 1),  # 1370 steps at 1370*2 steps/second
+        (136533 * pnpq_ureg.k10cr1_step, 1.0, 1),
     ],
 )
-def test_move_absolute_sleep( # TODO: replace mpc320 to k10cr1
+def test_move_absolute_sleep(
     mocked_sleep: mock.MagicMock,
     position: Quantity,
     expected_sleep_time: float,
@@ -55,14 +58,13 @@ def test_move_absolute_sleep( # TODO: replace mpc320 to k10cr1
 ) -> None:
     """Test that the stub sleeps for the correct amount of time when moving."""
 
-    params = PolarizationControllerParams()
-    params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
-
-    mpc = PolarizationControllerThorlabsMPC320Stub(
-        time_scaling_factor=time_scaling_factor, current_params=params
+    waveplate_velocity_params = WaveplateVelocityParams()
+    waveplate_velocity_params["maximum_velocity"] = 136533 * pnpq_ureg["k10cr1_step / second"]
+    waveplate = WaveplateThorlabsK10CR1Stub(
+        time_scaling_factor=time_scaling_factor, current_velocity_params=waveplate_velocity_params
     )
 
-    mpc.move_absolute(ChanIdent.CHANNEL_1, position)
+    waveplate.move_absolute(position)
 
     # Assert the sleep behavior
     assert mocked_sleep.call_count == 1
@@ -72,7 +74,9 @@ def test_move_absolute_sleep( # TODO: replace mpc320 to k10cr1
 def test_jog(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
     position = 100 * pnpq_ureg.k10cr1_step
     stub_waveplate.move_absolute(position)
-    # Using default jog step of 10 steps
+
+    stub_waveplate.current_jog_params["jog_step_size"] = 10 * pnpq_ureg.k10cr1_step
+
     stub_waveplate.jog(JogDirection.FORWARD)
 
     # Currently throws a mypy error because current_state is not in the AbstractWaveplateThorlabsK10CR1.

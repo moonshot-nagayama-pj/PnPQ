@@ -31,9 +31,9 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
 
     time_scaling_factor: float = field(default=0.0)  # Simulate time if > 0.0
 
-    current_velocity_params: WaveplateVelocityParams = field(init=False)
-    current_jog_params: WaveplateJogParams = field(init=False)
-    current_home_params: WaveplateHomeParams = field(init=False)
+    current_velocity_params: WaveplateVelocityParams = field(default_factory=WaveplateVelocityParams)
+    current_jog_params: WaveplateJogParams = field(default_factory=WaveplateJogParams)
+    current_home_params: WaveplateHomeParams = field(default_factory=WaveplateHomeParams)
     homed: bool = field(default=False, init=False)
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
@@ -49,42 +49,6 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
             "current_state",
             {
                 self._chan_ident: 0 * pnpq_ureg.k10cr1_step,
-            },
-        )
-
-        object.__setattr__(
-            self,
-            "current_velocity_params",
-            {
-                "minimum_velocity": 0 * pnpq_ureg.k10cr1_velocity,
-                "acceleration": 0 * pnpq_ureg.k10cr1_acceleration,
-                "maximum_velocity": 10
-                * pnpq_ureg.k10cr1_velocity,  # Default value set to 10 k10cr1_velocity based on expected operational range
-            },
-        )
-
-        object.__setattr__(
-            self,
-            "current_jog_params",
-            {
-                "jog_mode": JogMode.SINGLE_STEP,
-                "jog_step_size": 10 * pnpq_ureg.k10cr1_step,
-                "jog_minimum_velocity": 0 * pnpq_ureg.k10cr1_velocity,
-                "jog_acceleration": 0 * pnpq_ureg.k10cr1_acceleration,
-                "jog_maximum_velocity": 10
-                * pnpq_ureg.k10cr1_velocity,  # Default value set to 10 k10cr1_velocity based on expected operational range
-                "jog_stop_mode": StopMode.IMMEDIATE,
-            },
-        )
-
-        object.__setattr__(
-            self,
-            "current_home_params",
-            {
-                "home_direction": HomeDirection.FORWARD_0,
-                "limit_switch": LimitSwitch.HARDWARE_FORWARD,
-                "home_velocity": 0 * pnpq_ureg.k10cr1_velocity,
-                "offset_distance": 0 * pnpq_ureg.k10cr1_step,
             },
         )
 

@@ -1,8 +1,9 @@
+from collections import UserDict
 import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import structlog
 from pint import Quantity
@@ -40,44 +41,80 @@ from ..apt.protocol import (
 )
 from ..units import pnpq_ureg
 
+class WaveplateVelocityParams(UserDict[str, Quantity]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
-class WaveplateVelocityParams(TypedDict):
-    """TypedDict for waveplate velocity parameters.
-    Used in `get_velparams` method.
-    """
+        self.__setitem__("minimum_velocity", 20 * pnpq_ureg.k10cr1_velocity)
+        self.__setitem__("acceleration", 0 * pnpq_ureg.k10cr1_acceleration)
+        self.__setitem__("maximum_velocity", 120 * pnpq_ureg.k10cr1_velocity)
 
-    #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    minimum_velocity: Quantity
-    #: Dimensionality must be ([angle] / [time] ** 2) or k10cr1_acceleration
-    acceleration: Quantity
-    #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    maximum_velocity: Quantity
+    def __setitem__(self, key: str, value: Quantity | None) -> None:
+        if value is None:
+            return
 
-
-class WaveplateJogParams(TypedDict):
-
-    # TODO: add comments
-
-    jog_mode: JogMode
-    # Dimensionality must be [angle] or k10cr1_step
-    jog_step_size: Quantity
-    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    jog_minimum_velocity: Quantity
-    # Dimensionality must be ([angle] / [time] ** 2) or k10cr1_acceleration
-    jog_acceleration: Quantity
-    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    jog_maximum_velocity: Quantity
-
-    jog_stop_mode: StopMode
+        if key == "minimum_velocity" or key == "maximum_velocity":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_velocity")))
+        elif key == "acceleration":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_acceleration")))
+        else:
+            raise ValueError(f"Invalid key '{key}'.")
 
 
-class WaveplateHomeParams(TypedDict):
-    home_direction: HomeDirection
-    limit_switch: LimitSwitch
-    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    home_velocity: Quantity
-    # Dimensionality must be [angle] or k10cr1_step
-    offset_distance: Quantity
+class WaveplateJogParams(UserDict[str, Any]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        # Initialize with default values if not provided
+        self.__setitem__("jog_mode", JogMode.CONTINUOUS)
+        self.__setitem__("jog_step_size", 1 * pnpq_ureg.k10cr1_step)
+        self.__setitem__("jog_minimum_velocity", 0 * pnpq_ureg.k10cr1_velocity)
+        self.__setitem__("jog_acceleration", 1 * pnpq_ureg.k10cr1_acceleration)
+        self.__setitem__("jog_maximum_velocity", 10 * pnpq_ureg.k10cr1_velocity)
+        self.__setitem__("jog_stop_mode", StopMode.IMMEDIATE)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        if value is None:
+            return
+
+        if key == "jog_mode":
+            super().__setitem__(key, value)
+        elif key == "jog_step_size":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_step")))
+        elif key == "jog_minimum_velocity" or key == "jog_maximum_velocity":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_velocity")))
+        elif key == "jog_acceleration":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_acceleration")))
+        elif key == "jog_stop_mode":
+            super().__setitem__(key, value)
+        else:
+            raise ValueError(f"Invalid key '{key}'.")
+
+
+class WaveplateHomeParams(UserDict[str, Any]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        # Initialize with default values if not provided
+        self.__setitem__("home_direction", HomeDirection.FORWARD)
+        self.__setitem__("limit_switch", LimitSwitch.HARDWARE_FORWARD)
+        self.__setitem__("home_velocity", 5 * pnpq_ureg.k10cr1_velocity)
+        self.__setitem__("offset_distance", 0 * pnpq_ureg.k10cr1_step)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        if value is None:
+            return
+
+        if key == "home_direction":
+            super().__setitem__(key, value)
+        elif key == "limit_switch":
+            super().__setitem__(key, value)
+        elif key == "home_velocity":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_velocity")))
+        elif key == "offset_distance":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_step")))
+        else:
+            raise ValueError(f"Invalid key '{key}'.")
 
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
