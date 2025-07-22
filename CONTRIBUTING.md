@@ -41,17 +41,11 @@ We use Semantic Versioning 2.0.0 for all of our projects.
 Follow the steps below in order to create and publish a release for PnPQ
 
 1. Decide to create a release.
-1. Create a `release-A.B.C` branch.
-1. Remove the `.dev` suffix in the version field in `pyproject.toml` (update version if necessary).
-1. Commit `git commit -am 'Release version A.B.C'` and push changes to branch.
-1. Create a tag `git tag -am 'Release version A.B.C' vA.B.C` and push `git push origin vA.B.C`.
-1. Wait for the release check script to finish.
-1. Edit the release in the draft (the generate release note function is sufficient for most cases).
-1. Publish the draft page.
+1. Run `./bin/release.bash` script and wait for it to finish.
+1. Wait for the release check script in GitHub Actions to finish.
+1. Edit and publish the draft in [Releases](https://github.com/moonshot-nagayama-pj/PnPQ/releases) (the generate release note function is sufficient for most cases).
 1. Approve the publish action.
-1. Start the next version (with the `.dev` prefix).
-1. Run `uv sync`.
-1. Create a PR to merge this branch.
+1. Create a PR to merge this branch (the script should open a new PR automatically).
 1. Wait for approval to merge the PR, and finish!
 
-The steps are modified from the [Pallets release procedure](https://palletsprojects.com/contributing/release).
+The release script is based on steps from [Pallets release procedure](https://palletsprojects.com/contributing/release).
