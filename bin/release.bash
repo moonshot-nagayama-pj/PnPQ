@@ -58,7 +58,7 @@ stdmsg "Removing '.dev0' from version in pyproject.toml..."
 
 # Get current version
 uv_version_str=$(uv version)
-current_version=$(echo "${uv_version_str}" | awk '{print $2}')
+current_version=$(stdmsg "${uv_version_str}" | awk '{print $2}')
 
 # Remove `.dev0` from the version
 updated_version=${current_version%.dev0}
@@ -97,7 +97,7 @@ if [[ -n ${1-} ]]; then
   if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     new_version="$1"
   else
-    echo "Error: Invalid next version format. Use A.B.C (e.g., 1.2.3)"
+    stdmsg "Error: Invalid next version format. Use A.B.C (e.g., 1.2.3)"
     exit 1
   fi
 else
