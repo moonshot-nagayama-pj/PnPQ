@@ -41,7 +41,7 @@ cd "${project_dir}"
 # Ensure that the script is run from the main branch
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 if [[ ${current_branch} != "main" ]]; then
-  errmsg "Error: This script must be ran on the main branch." >&2
+  errmsg "Error: This script must be run on the main branch." >&2
   exit 1
 fi
 
