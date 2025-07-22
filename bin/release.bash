@@ -114,8 +114,7 @@ stdmsg "Committing next version change..."
 git commit -am "Start next version: ${new_version}"
 git push origin "${branch_name}"
 
-# pull_request_url="https://github.com/moonshot-nagayama-pj/pnpq/pull/new/${branch_name}?title=Release%20${updated_version}"
-pull_request_url="https://github.com/tomshen1234/pnpq/pull/new/${branch_name}?title=Release%20${updated_version}"
+pull_request_url="https://github.com/moonshot-nagayama-pj/pnpq/pull/new/${branch_name}?title=Release%20${updated_version}"
 
 stdmsg "Please check the pull request at ${pull_request_url}."
 
