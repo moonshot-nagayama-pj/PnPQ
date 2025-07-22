@@ -38,23 +38,20 @@ project_dir="$(cd "${base_dir}/.." >/dev/null && pwd -P)"
 # cd to the directory before running uv
 cd "${project_dir}"
 
+# Ensure that the script is run from the main branch
+current_branch="$(git rev-parse --abbrev-ref HEAD)"
+if [[ ${current_branch} != "main" ]]; then
+  errmsg "Error: This script must be ran on the main branch." >&2
+  exit 1
+fi
+
 # Ensure that there are no uncommitted changes
 if ! git diff-index --quiet HEAD --; then
   errmsg "Error: There are uncommitted changes in the repository. Please commit or stash them before running this script."
   exit 1
 fi
 
-stdmsg "Run checks before starting the release process..."
-# Run the checks script
-"${base_dir}/check.bash"
-
-stdmsg "Starting release process..."
-
-# stdmsg "Running uv sync..."
-uv sync
-
-# Removing dev from version number in pyproject.toml
-stdmsg "Removing '.dev0' from version in pyproject.toml..."
+stdmsg "Parsing current version and get next version..."
 
 # Get current version
 uv_version_str=$(uv version)
@@ -65,11 +62,37 @@ updated_version=${current_version%.dev0}
 
 # Check format of updated_version
 if [[ ! ${updated_version} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  errmsg "Error: Updated version '${updated_version}' is not in the correct format (A.B.C). Please update the version in pyproject.toml."
+  errmsg "Error: Current version '${updated_version}' is not in the correct format (A.B.C). Please update the version in pyproject.toml."
   exit 1
 fi
 
-# Update the version using uv
+# Parse optional next version argument
+new_version=""
+
+# If an argument is passed, validate it
+if [[ -n ${1-} ]]; then
+  if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    new_version="$1"
+  else
+    errmsg "Error: Invalid next version format. Use A.B.C (e.g., 1.2.3)"
+    exit 1
+  fi
+else
+  # No argument provided, increment patch version
+  IFS='.' read -r major minor patch <<<"${updated_version}"
+  new_version="${major}.${minor}.$((patch + 1))"
+fi
+
+stdmsg "Next version will be: ${new_version}"
+
+# Run the checks script
+stdmsg "Run checks before starting the release process..."
+"${base_dir}/check.bash"
+
+stdmsg "Starting release process..."
+
+# Removing dev from version number in pyproject.toml
+stdmsg "Removing '.dev0' from version in pyproject.toml..."
 uv version "${updated_version}"
 
 stdmsg "Releasing version: ${updated_version}"
@@ -89,35 +112,18 @@ stdmsg "Creating tag 'v${updated_version}'..."
 git tag -am "Release version: ${updated_version}" "v${updated_version}"
 git push origin "v${updated_version}"
 
-# Optional next version argument
-new_version=""
-
-# If an argument is passed, validate it
-if [[ -n ${1-} ]]; then
-  if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    new_version="$1"
-  else
-    stdmsg "Error: Invalid next version format. Use A.B.C (e.g., 1.2.3)"
-    exit 1
-  fi
-else
-  # No argument provided, increment patch version
-  IFS='.' read -r major minor patch <<<"${updated_version}"
-  new_version="${major}.${minor}.$((patch + 1))"
-fi
-
-stdmsg "Starting next version: ${new_version}"
 # Update the version to the new version (e.g. <version>.dev)
+stdmsg "Starting next version: ${new_version}"
 uv version "${new_version}.dev"
+
 # Commit the next version change
 stdmsg "Committing next version change..."
 git commit -am "Start next version: ${new_version}"
 git push origin "${branch_name}"
 
-pull_request_url="https://github.com/moonshot-nagayama-pj/pnpq/pull/new/${branch_name}?title=Release%20${updated_version}"
-
+# Create a pull request
+pull_request_url="https://github.com/moonshot-nagayama-pj/pnpq/pull/new/${branch_name}"
 stdmsg "Please check the pull request at ${pull_request_url}."
-
 if command -v xdg-open &>/dev/null; then
   xdg-open "${pull_request_url}"
 elif command -v open &>/dev/null; then
