@@ -481,9 +481,9 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
 
         # First get the current velocity parameters
         params = self.get_velparams()
-        params["minimum_velocity"] = params["minimum_velocity"].to("kbd101_velocity")
-        params["acceleration"] = params["acceleration"].to("kbd101_acceleration")
-        params["maximum_velocity"] = params["maximum_velocity"].to("kbd101_velocity")
+        params["minimum_velocity"] = minimum_velocity
+        params["acceleration"] = acceleration
+        params["maximum_velocity"] = maximum_velocity
 
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_MOT_SET_VELPARAMS(

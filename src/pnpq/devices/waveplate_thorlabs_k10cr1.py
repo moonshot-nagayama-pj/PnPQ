@@ -424,9 +424,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         result["jog_minimum_velocity"] = (
             params.jog_minimum_velocity * pnpq_ureg.k10cr1_velocity
         )
-        result["jog_minimum_velocity"] = (
-            params.jog_minimum_velocity * pnpq_ureg.k10cr1_velocity
-        )
         result["jog_acceleration"] = (
             params.jog_acceleration * pnpq_ureg.k10cr1_acceleration
         )
