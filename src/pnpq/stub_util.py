@@ -14,15 +14,14 @@ def sleep_delta_position(
     if time_multiplier == 0.0:
         return
 
-    # Since the velocity can be in different units, we need to convert it to a common unit
-    # before calculating the sleep time.
+    # We use the velocity and delta position to calculate the time to sleep.
     # However, there are no transformations defined between device-specific velocities,
     # device-specific positions, and standard time units (seconds).
     #
     # Therefore, we first convert the delta position and velocity to a common unit
-    # and then calculate the time to sleep.
+    # in order to calculate the time to sleep.
     #
-    # We must split the logic based on the velocity units to ensure correct calculations.
+    # We must split the logic based on the velocity units,
     # as some devices use degrees (mpc320, k10cr1) and others use meters (kbd101).
     if velocity.units in ("mpc320_velocity", "k10cr1_velocity"):
         time_to_move = (
