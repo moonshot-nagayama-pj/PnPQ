@@ -6,6 +6,8 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
 
+  workflow_call:
+
 jobs:
   check-codes:
     runs-on: ubuntu-24.04
@@ -19,7 +21,7 @@ jobs:
       with:
         enable-cache: true
         cache-dependency-glob: "uv.lock"
-        version: "0.7.17"
+        version: "0.8.0"
 
     - name: Set up Python with uv
       run: uv python install

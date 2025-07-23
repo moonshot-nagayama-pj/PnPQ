@@ -1,0 +1,55 @@
+# Automatically prepare, build, and publish the package to PyPI
+
+name: Publish PnPQ to PyPI
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+  workflow_dispatch:
+
+jobs:
+  run-checks:
+    uses: ./.github/workflows/check.yml
+
+  draft-release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Create GitHub Release (draft)
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release create --draft --repo "${{ github.repository }}" "${{ github.ref_name }}"
+
+  publish-package:
+    needs: [run-checks, draft-release]
+    environment: pypi-test
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install uv and enable caching
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+        version: "0.8.0"
+
+    - name: Set up Python with uv
+      run: uv python install
+
+    - name: Build package
+      run: uv build
+
+    - name: Publish package to PyPI
+      run: uv publish --index testpypi

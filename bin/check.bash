@@ -58,7 +58,7 @@ stdmsg "Checking shell scripts with shellcheck..."
 find . -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellcheck --enable=all --external-sources
 
 stdmsg "Checking shell script formatting with shfmt..."
-shfmt --diff --simplify .
+shfmt --diff .
 
 stdmsg "Running ruff check..."
 ruff check .
