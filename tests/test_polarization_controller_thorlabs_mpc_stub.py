@@ -223,7 +223,6 @@ def test_custom_home_position(
     assert mpc_position.to("degree").magnitude == pytest.approx(45, abs=0.05)
 
 
-
 def test_params(stub_mpc: AbstractPolarizationControllerThorlabsMPC) -> None:
     stub_mpc.set_params(
         velocity=1 * pnpq_ureg("mpc320_velocity"),
