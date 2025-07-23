@@ -5,6 +5,7 @@ import structlog
 from pint import Quantity
 
 from pnpq.apt.protocol import AptMessage_MGMSG_MOT_GET_USTATUSUPDATE
+from pnpq.stub_util import sleep_delta_position
 
 from ..apt.protocol import (
     Address,
@@ -30,11 +31,19 @@ from .odl_thorlabs_kbd101 import (
 class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101):
     _chan_ident = ChanIdent.CHANNEL_1
 
+    time_scaling_factor: float = field(default=0.0)  # Simulate time if > 0.0
+
     log = structlog.get_logger()
 
-    current_velocity_params: OpticalDelayLineVelocityParams = field(init=False)
-    current_home_params: OpticalDelayLineHomeParams = field(init=False)
-    current_jog_params: OpticalDelayLineJogParams = field(init=False)
+    current_velocity_params: OpticalDelayLineVelocityParams = field(
+        default_factory=OpticalDelayLineVelocityParams
+    )
+    current_home_params: OpticalDelayLineHomeParams = field(
+        default_factory=OpticalDelayLineHomeParams
+    )
+    current_jog_params: OpticalDelayLineJogParams = field(
+        default_factory=OpticalDelayLineJogParams
+    )
 
     current_state: dict[ChanIdent, Quantity] = field(init=False)
 
@@ -49,63 +58,61 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
             },
         )
 
-        object.__setattr__(
-            self,
-            "current_velocity_params",
-            {
-                "minimum_velocity": 0 * pnpq_ureg.kbd101_velocity,
-                "acceleration": 0 * pnpq_ureg.kbd101_acceleration,
-                "maximum_velocity": 10 * pnpq_ureg.kbd101_velocity,
-            },
-        )
-
-        object.__setattr__(
-            self,
-            "current_home_params",
-            {
-                "home_direction": HomeDirection.FORWARD,
-                "limit_switch": LimitSwitch.HARDWARE_FORWARD,
-                "home_velocity": 134218 * pnpq_ureg.kbd101_velocity,
-                "offset_distance": 0 * pnpq_ureg.kbd101_position,
-            },
-        )
-
-        object.__setattr__(
-            self,
-            "current_jog_params",
-            {
-                "jog_mode": JogMode.SINGLE_STEP,
-                "jog_step_size": 20000 * pnpq_ureg.kbd101_position,
-                "jog_minimum_velocity": 134218 * pnpq_ureg.kbd101_velocity,
-                "jog_acceleration": 7 * pnpq_ureg.kbd101_acceleration,
-                "jog_maximum_velocity": 134218 * pnpq_ureg.kbd101_velocity,
-                "jog_stop_mode": StopMode.CONTROLLED,
-            },
-        )
-
     def identify(self) -> None:
         self.log.info("[KBD101 Stub] Identify")
 
     def home(self) -> None:
         home_position = 0 * pnpq_ureg.kbd101_position
-        self.log.info("[KBD101 Stub] Channel %s home", self._chan_ident)
+        delta_position: Quantity = self.current_state[self._chan_ident] - home_position
 
-        self.move_absolute(home_position)
+        sleep_delta_position(
+            self.time_scaling_factor,
+            self.current_home_params[
+                "home_velocity"
+            ],  # NOTE: Should it be maximum_velocity?
+            delta_position,
+        )
+
+        object.__setattr__(
+            self,
+            "homed",
+            True,
+        )
+
+        self.current_state[self._chan_ident] = home_position
+
+        # TODO: Remove f string
+        self.log.info(f"[KBD101 Stub] Channel {self._chan_ident} home")
 
     def move_absolute(self, position: Quantity) -> None:
         # TODO: Check if input is too large or too small for the device
-        kbd101_position = position.to("kbd101_position")
-        self.current_state[self._chan_ident] = cast(Quantity, kbd101_position)
+        position_in_steps = position.to("kbd101_position")
 
-        self.log.info(
-            "[KBD101 Stub] Channel %s move to %s", self._chan_ident, kbd101_position
+        delta_position = cast(
+            Quantity, position_in_steps - self.current_state[self._chan_ident]
         )
+
+        sleep_delta_position(
+            self.time_scaling_factor,
+            self.get_velparams()["maximum_velocity"],
+            delta_position,
+        )  # NOTE: Should it be maximum_velocity or minimum_velocity? Or something in between?
+
+        self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
+
+        self.log.info("[KBD101 Stub] Channel %s move to %s", self._chan_ident, position)
 
     def jog(self, jog_direction: JogDirection) -> None:
         jog_value = self.current_jog_params["jog_step_size"]
         jog_value_magnitude = jog_value.to("kbd101_position").magnitude
         current_value = (
             self.current_state[self._chan_ident].to("kbd101_position").magnitude
+        )
+
+        sleep_delta_position(
+            self.time_scaling_factor,
+            self.current_jog_params["jog_maximum_velocity"],
+            jog_value,
         )
 
         if jog_direction == JogDirection.FORWARD:
@@ -145,18 +152,10 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
         maximum_velocity: None | Quantity = None,
     ) -> None:
 
-        if minimum_velocity is not None:
-            self.current_velocity_params["minimum_velocity"] = cast(
-                Quantity, minimum_velocity.to("kbd101_velocity")
-            )
-        if acceleration is not None:
-            self.current_velocity_params["acceleration"] = cast(
-                Quantity, acceleration.to("kbd101_acceleration")
-            )
-        if maximum_velocity is not None:
-            self.current_velocity_params["maximum_velocity"] = cast(
-                Quantity, maximum_velocity.to("kbd101_velocity")
-            )
+        self.current_velocity_params["minimum_velocity"] = minimum_velocity
+        self.current_velocity_params["acceleration"] = acceleration
+        self.current_velocity_params["maximum_velocity"] = maximum_velocity
+
         self.log.info(
             "[KBD101 Stub] Updated parameters: %s", self.current_velocity_params
         )
@@ -171,18 +170,11 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
         home_velocity: Quantity | None = None,
         offset_distance: Quantity | None = None,
     ) -> None:
-        if home_direction is not None:
-            self.current_home_params["home_direction"] = home_direction
-        if limit_switch is not None:
-            self.current_home_params["limit_switch"] = limit_switch
-        if home_velocity is not None:
-            self.current_home_params["home_velocity"] = cast(
-                Quantity, home_velocity.to("kbd101_velocity")
-            )
-        if offset_distance is not None:
-            self.current_home_params["offset_distance"] = cast(
-                Quantity, offset_distance.to("kbd101_position")
-            )
+        self.current_home_params["home_direction"] = home_direction
+        self.current_home_params["limit_switch"] = limit_switch
+        self.current_home_params["home_velocity"] = home_velocity
+        self.current_home_params["offset_distance"] = offset_distance
+
         self.log.info("[KBD101 Stub] Updated parameters: %s", self.current_home_params)
 
     def get_jogparams(self) -> OpticalDelayLineJogParams:
@@ -197,25 +189,11 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
         jog_maximum_velocity: Quantity | None = None,
         jog_stop_mode: StopMode | None = None,
     ) -> None:
-        if jog_mode is not None:
-            self.current_jog_params["jog_mode"] = jog_mode
-        if jog_step_size is not None:
-            self.current_jog_params["jog_step_size"] = cast(
-                Quantity, jog_step_size.to("kbd101_position")
-            )
-        if jog_minimum_velocity is not None:
-            self.current_jog_params["jog_minimum_velocity"] = cast(
-                Quantity, jog_minimum_velocity.to("kbd101_velocity")
-            )
-        if jog_acceleration is not None:
-            self.current_jog_params["jog_acceleration"] = cast(
-                Quantity, jog_acceleration.to("kbd101_acceleration")
-            )
-        if jog_maximum_velocity is not None:
-            self.current_jog_params["jog_maximum_velocity"] = cast(
-                Quantity, jog_maximum_velocity.to("kbd101_velocity")
-            )
-        if jog_stop_mode is not None:
-            self.current_jog_params["jog_stop_mode"] = jog_stop_mode
+        self.current_jog_params["jog_mode"] = jog_mode
+        self.current_jog_params["jog_step_size"] = jog_step_size
+        self.current_jog_params["jog_minimum_velocity"] = jog_minimum_velocity
+        self.current_jog_params["jog_acceleration"] = jog_acceleration
+        self.current_jog_params["jog_maximum_velocity"] = jog_maximum_velocity
+        self.current_jog_params["jog_stop_mode"] = jog_stop_mode
 
         self.log.info("[KBD101 Stub] Updated parameters: %s", self.current_jog_params)

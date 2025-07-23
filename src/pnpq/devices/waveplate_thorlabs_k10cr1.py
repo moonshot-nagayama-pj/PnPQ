@@ -66,7 +66,6 @@ class WaveplateJogParams(UserDict[str, Any]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        # Initialize with default values if not provided
         self.__setitem__("jog_mode", JogMode.CONTINUOUS)
         self.__setitem__("jog_step_size", 1 * pnpq_ureg.k10cr1_step)
         self.__setitem__("jog_minimum_velocity", 0 * pnpq_ureg.k10cr1_velocity)
@@ -94,7 +93,6 @@ class WaveplateHomeParams(UserDict[str, Any]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        # Initialize with default values if not provided
         self.__setitem__("home_direction", HomeDirection.FORWARD)
         self.__setitem__("limit_switch", LimitSwitch.HARDWARE_FORWARD)
         self.__setitem__("home_velocity", 5 * pnpq_ureg.k10cr1_velocity)

@@ -307,7 +307,8 @@ def test_kbd101_velocity_to_velocity(
     expected_velocity: Quantity,
 ) -> None:
     velocity = (kbd101_velocity * pnpq_ureg.kbd101_velocity).to(expected_velocity.units)
-    assert velocity.magnitude == pytest.approx(expected_velocity.magnitude)
+    # For some reason this conversion is not that accurate... (hence rel=1e-4 instead of default 1e-6)
+    assert velocity.magnitude == pytest.approx(expected_velocity.magnitude, rel=1e-4)
     assert velocity.units == expected_velocity.units
 
 

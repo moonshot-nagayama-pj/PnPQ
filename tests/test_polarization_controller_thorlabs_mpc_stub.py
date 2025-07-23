@@ -147,7 +147,7 @@ def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
         (685 * pnpq_ureg.mpc320_step, 0.5, 2),
     ],
 )
-def test_home_sleep_parametrized(
+def test_home_sleep(
     mocked_sleep: mock.MagicMock,
     initial_position: Quantity,
     expected_sleep_time: float,
@@ -221,3 +221,21 @@ def test_custom_home_position(
         stub_mpc.get_status(ChanIdent.CHANNEL_1).position * pnpq_ureg.mpc320_step
     )
     assert mpc_position.to("degree").magnitude == pytest.approx(45, abs=0.05)
+
+
+
+def test_params(stub_mpc: AbstractPolarizationControllerThorlabsMPC) -> None:
+    stub_mpc.set_params(
+        velocity=1 * pnpq_ureg("mpc320_velocity"),
+        home_position=2 * pnpq_ureg.mpc320_step,
+        jog_step_1=3 * pnpq_ureg.mpc320_step,
+        jog_step_2=4 * pnpq_ureg.mpc320_step,
+        jog_step_3=5 * pnpq_ureg.mpc320_step,
+    )
+    params = stub_mpc.get_params()
+
+    assert params["velocity"].to("mpc320_velocity").magnitude == 1
+    assert params["home_position"].to("mpc320_step").magnitude == 2
+    assert params["jog_step_1"].to("mpc320_step").magnitude == 3
+    assert params["jog_step_2"].to("mpc320_step").magnitude == 4
+    assert params["jog_step_3"].to("mpc320_step").magnitude == 5

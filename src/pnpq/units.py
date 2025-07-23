@@ -306,7 +306,6 @@ thorlabs_context.add_transformation(
         input_to_output=lambda velocity: velocity / KBD101_VELOCITY_SCALE_FACTOR,
         input_unit=cast(Unit, pnpq_ureg("kbd101_velocity")),
         output_unit=cast(Unit, pnpq_ureg("mm / second")),
-        output_rounded=True,
     ),
 )
 
