@@ -60,9 +60,6 @@ def test_move_absolute(stub_odl: AbstractOpticalDelayLineThorlabsKBD101) -> None
     assert current_position.magnitude == pytest.approx(40000)
 
 
-log = structlog.get_logger()
-
-
 @pytest.mark.parametrize(
     "position, expected_sleep_time, time_scaling_factor",
     [
