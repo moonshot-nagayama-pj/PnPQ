@@ -2,7 +2,6 @@ from typing import Generator, cast
 from unittest import mock
 
 import pytest
-import structlog
 from pint import Quantity
 
 from pnpq.apt.protocol import (
