@@ -37,6 +37,15 @@ def test_identify(stub_odl: AbstractOpticalDelayLineThorlabsKBD101) -> None:
     stub_odl.identify()
 
 
+def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
+    """Test that an invalid time multiplier raises an error."""
+
+    with pytest.raises(
+        ValueError, match="Time multiplier must be greater than or equal to 0.0."
+    ):
+        OpticalDelayLineThorlabsKBD101Stub(time_scaling_factor=-1.0)
+
+
 def test_home(stub_odl: AbstractOpticalDelayLineThorlabsKBD101) -> None:
     stub_odl.home()
 

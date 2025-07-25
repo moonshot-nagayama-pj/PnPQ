@@ -50,6 +50,9 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
     def __post_init__(self) -> None:
         self.log.info("[KBD101 Stub] Initialized")
 
+        if self.time_scaling_factor < 0.0:
+            raise ValueError("Time multiplier must be greater than or equal to 0.0.")
+
         object.__setattr__(
             self,
             "current_state",

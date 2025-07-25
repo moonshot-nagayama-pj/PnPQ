@@ -18,8 +18,9 @@ def sleep_delta_position(
     # However, there are no transformations defined between device-specific velocities,
     # device-specific positions, and standard time units (seconds).
     #
-    # Therefore, we will first try to convert the velocity and delta position to degrees or meters,
-    # and if that fails, we will raise an error.
+    # Therefore, we will first try to convert spatial dimension into degrees,
+    # and if that fails, into meters. If that conversion fails,
+    # we will allow the DimensionalityError to propagate.
     try:
         time_to_move = (
             abs(
@@ -29,20 +30,11 @@ def sleep_delta_position(
             )
             * time_multiplier
         )
-    except DimensionalityError as e:
-        try:
-            time_to_move = (
-                abs(
-                    (
-                        delta_position.to("meter") / velocity.to("meters / second")
-                    ).magnitude
-                )
-                * time_multiplier
-            )
-        except DimensionalityError:
-            raise AttributeError(
-                f"Unsupported velocity units: {velocity.units}. Supported units are 'mpc320_velocity', 'k10cr1_velocity', and 'kbd101_velocity'."
-            ) from e
+    except DimensionalityError:
+        time_to_move = (
+            abs((delta_position.to("meter") / velocity.to("meters / second")).magnitude)
+            * time_multiplier
+        )
 
     time.sleep(time_to_move)
 

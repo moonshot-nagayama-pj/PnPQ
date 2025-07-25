@@ -77,6 +77,15 @@ def test_move_absolute_sleep(
     assert mocked_sleep.call_args[0][0] == expected_sleep_time
 
 
+def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
+    """Test that an invalid time multiplier raises an error."""
+
+    with pytest.raises(
+        ValueError, match="Time multiplier must be greater than or equal to 0.0."
+    ):
+        WaveplateThorlabsK10CR1Stub(time_scaling_factor=-1.0)
+
+
 @pytest.mark.parametrize(
     "jog_step, jog_direction, expected_sleep_time, time_scaling_factor",
     [

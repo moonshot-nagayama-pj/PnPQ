@@ -127,15 +127,11 @@ def test_jog_sleep(
 
 def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
     """Test that an invalid time multiplier raises an error."""
-    params = PolarizationControllerParams()
-    params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
 
     with pytest.raises(
         ValueError, match="Time multiplier must be greater than or equal to 0.0."
     ):
-        PolarizationControllerThorlabsMPC320Stub(
-            time_scaling_factor=-1.0, current_params=params
-        )
+        PolarizationControllerThorlabsMPC320Stub(time_scaling_factor=-1.0)
 
 
 @pytest.mark.parametrize(
