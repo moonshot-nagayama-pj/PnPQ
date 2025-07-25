@@ -1,8 +1,9 @@
 import threading
 import time
 from abc import ABC, abstractmethod
+from collections import UserDict
 from dataclasses import dataclass, field
-from typing import TypedDict, cast
+from typing import Any, cast
 
 import structlog
 from pint import Quantity
@@ -41,43 +42,76 @@ from ..apt.protocol import (
 from ..units import pnpq_ureg
 
 
-class WaveplateVelocityParams(TypedDict):
-    """TypedDict for waveplate velocity parameters.
-    Used in `get_velparams` method.
-    """
+class WaveplateVelocityParams(UserDict[str, Quantity]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
-    #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    minimum_velocity: Quantity
-    #: Dimensionality must be ([angle] / [time] ** 2) or k10cr1_acceleration
-    acceleration: Quantity
-    #: Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    maximum_velocity: Quantity
+        self.__setitem__("minimum_velocity", 20 * pnpq_ureg.k10cr1_velocity)
+        self.__setitem__("acceleration", 0 * pnpq_ureg.k10cr1_acceleration)
+        self.__setitem__("maximum_velocity", 120 * pnpq_ureg.k10cr1_velocity)
 
+    def __setitem__(self, key: str, value: Quantity | None) -> None:
+        if value is None:
+            return
 
-class WaveplateJogParams(TypedDict):
-
-    # TODO: add comments
-
-    jog_mode: JogMode
-    # Dimensionality must be [angle] or k10cr1_step
-    jog_step_size: Quantity
-    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    jog_minimum_velocity: Quantity
-    # Dimensionality must be ([angle] / [time] ** 2) or k10cr1_acceleration
-    jog_acceleration: Quantity
-    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    jog_maximum_velocity: Quantity
-
-    jog_stop_mode: StopMode
+        if key in ("minimum_velocity", "maximum_velocity"):
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_velocity")))
+        elif key == "acceleration":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_acceleration")))
+        else:
+            raise ValueError(f"Invalid key '{key}'.")
 
 
-class WaveplateHomeParams(TypedDict):
-    home_direction: HomeDirection
-    limit_switch: LimitSwitch
-    # Dimensionality must be ([angle] / [time]) or k10cr1_velocity
-    home_velocity: Quantity
-    # Dimensionality must be [angle] or k10cr1_step
-    offset_distance: Quantity
+class WaveplateJogParams(UserDict[str, Any]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.__setitem__("jog_mode", JogMode.CONTINUOUS)
+        self.__setitem__("jog_step_size", 1 * pnpq_ureg.k10cr1_step)
+        self.__setitem__("jog_minimum_velocity", 0 * pnpq_ureg.k10cr1_velocity)
+        self.__setitem__("jog_acceleration", 1 * pnpq_ureg.k10cr1_acceleration)
+        self.__setitem__("jog_maximum_velocity", 10 * pnpq_ureg.k10cr1_velocity)
+        self.__setitem__("jog_stop_mode", StopMode.IMMEDIATE)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        if value is None:
+            return
+
+        if key in ("jog_mode", "jog_stop_mode"):
+            super().__setitem__(key, value)
+        elif key == "jog_step_size":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_step")))
+        elif key in ("jog_minimum_velocity", "jog_maximum_velocity"):
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_velocity")))
+        elif key == "jog_acceleration":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_acceleration")))
+        else:
+            raise ValueError(f"Invalid key '{key}'.")
+
+
+class WaveplateHomeParams(UserDict[str, Any]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.__setitem__("home_direction", HomeDirection.FORWARD)
+        self.__setitem__("limit_switch", LimitSwitch.HARDWARE_FORWARD)
+        self.__setitem__("home_velocity", 5 * pnpq_ureg.k10cr1_velocity)
+        self.__setitem__("offset_distance", 0 * pnpq_ureg.k10cr1_step)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        if value is None:
+            return
+
+        if key == "home_direction":
+            super().__setitem__(key, value)
+        elif key == "limit_switch":
+            super().__setitem__(key, value)
+        elif key == "home_velocity":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_velocity")))
+        elif key == "offset_distance":
+            super().__setitem__(key, cast(Quantity, value.to("k10cr1_step")))
+        else:
+            raise ValueError(f"Invalid key '{key}'.")
 
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
@@ -329,11 +363,11 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         )
         assert isinstance(params, AptMessage_MGMSG_MOT_GET_VELPARAMS)
 
-        result: WaveplateVelocityParams = {
-            "minimum_velocity": params.minimum_velocity * pnpq_ureg.k10cr1_velocity,
-            "acceleration": params.acceleration * pnpq_ureg.k10cr1_acceleration,
-            "maximum_velocity": params.maximum_velocity * pnpq_ureg.k10cr1_velocity,
-        }
+        result = WaveplateVelocityParams()
+        result["minimum_velocity"] = params.minimum_velocity * pnpq_ureg.k10cr1_velocity
+        result["acceleration"] = params.acceleration * pnpq_ureg.k10cr1_acceleration
+        result["maximum_velocity"] = params.maximum_velocity * pnpq_ureg.k10cr1_velocity
+
         return result
 
     def set_velparams(
@@ -346,18 +380,9 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         # First get the current velocity parameters
         params = self.get_velparams()
 
-        if minimum_velocity is not None:
-            params["minimum_velocity"] = cast(
-                Quantity, minimum_velocity.to("k10cr1_velocity")
-            )
-        if acceleration is not None:
-            params["acceleration"] = cast(
-                Quantity, acceleration.to("k10cr1_acceleration")
-            )
-        if maximum_velocity is not None:
-            params["maximum_velocity"] = cast(
-                Quantity, maximum_velocity.to("k10cr1_velocity")
-            )
+        params["minimum_velocity"] = minimum_velocity
+        params["acceleration"] = acceleration
+        params["maximum_velocity"] = maximum_velocity
 
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_MOT_SET_VELPARAMS(
@@ -393,16 +418,20 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
         assert isinstance(params, AptMessage_MGMSG_MOT_GET_JOGPARAMS)
 
-        result: WaveplateJogParams = {
-            "jog_mode": params.jog_mode,
-            "jog_step_size": params.jog_step_size * pnpq_ureg.k10cr1_step,
-            "jog_minimum_velocity": params.jog_minimum_velocity
-            * pnpq_ureg.k10cr1_velocity,
-            "jog_acceleration": params.jog_acceleration * pnpq_ureg.k10cr1_acceleration,
-            "jog_maximum_velocity": params.jog_maximum_velocity
-            * pnpq_ureg.k10cr1_velocity,
-            "jog_stop_mode": params.jog_stop_mode,
-        }
+        result = WaveplateJogParams()
+        result["jog_mode"] = params.jog_mode
+        result["jog_step_size"] = params.jog_step_size * pnpq_ureg.k10cr1_step
+        result["jog_minimum_velocity"] = (
+            params.jog_minimum_velocity * pnpq_ureg.k10cr1_velocity
+        )
+        result["jog_acceleration"] = (
+            params.jog_acceleration * pnpq_ureg.k10cr1_acceleration
+        )
+        result["jog_maximum_velocity"] = (
+            params.jog_maximum_velocity * pnpq_ureg.k10cr1_velocity
+        )
+        result["jog_stop_mode"] = params.jog_stop_mode
+
         return result
 
     def set_jogparams(
@@ -417,18 +446,12 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         # First get the current jog parameters
         params = self.get_jogparams()
 
-        if jog_mode is not None:
-            params["jog_mode"] = jog_mode
-        if jog_step_size is not None:
-            params["jog_step_size"] = jog_step_size
-        if jog_minimum_velocity is not None:
-            params["jog_minimum_velocity"] = jog_minimum_velocity
-        if jog_acceleration is not None:
-            params["jog_acceleration"] = jog_acceleration
-        if jog_maximum_velocity is not None:
-            params["jog_maximum_velocity"] = jog_maximum_velocity
-        if jog_stop_mode is not None:
-            params["jog_stop_mode"] = jog_stop_mode
+        params["jog_mode"] = jog_mode
+        params["jog_step_size"] = jog_step_size
+        params["jog_minimum_velocity"] = jog_minimum_velocity
+        params["jog_acceleration"] = jog_acceleration
+        params["jog_maximum_velocity"] = jog_maximum_velocity
+        params["jog_stop_mode"] = jog_stop_mode
 
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_MOT_SET_JOGPARAMS(
@@ -470,12 +493,13 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
         assert isinstance(params, AptMessage_MGMSG_MOT_GET_HOMEPARAMS)
 
-        result: WaveplateHomeParams = {
-            "home_direction": params.home_direction,
-            "limit_switch": params.limit_switch,
-            "home_velocity": params.home_velocity * pnpq_ureg.k10cr1_velocity,
-            "offset_distance": params.offset_distance * pnpq_ureg.k10cr1_step,
-        }
+        result = WaveplateHomeParams()
+
+        result["home_direction"] = params.home_direction
+        result["limit_switch"] = params.limit_switch
+        result["home_velocity"] = params.home_velocity * pnpq_ureg.k10cr1_velocity
+        result["offset_distance"] = params.offset_distance * pnpq_ureg.k10cr1_step
+
         return result
 
     def set_homeparams(
@@ -488,14 +512,10 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         # First get the current home parameters
         params = self.get_homeparams()
 
-        if home_direction is not None:
-            params["home_direction"] = home_direction
-        if limit_switch is not None:
-            params["limit_switch"] = limit_switch
-        if home_velocity is not None:
-            params["home_velocity"] = home_velocity
-        if offset_distance is not None:
-            params["offset_distance"] = offset_distance
+        params["home_direction"] = home_direction
+        params["limit_switch"] = limit_switch
+        params["home_velocity"] = home_velocity
+        params["offset_distance"] = offset_distance
 
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_MOT_SET_HOMEPARAMS(

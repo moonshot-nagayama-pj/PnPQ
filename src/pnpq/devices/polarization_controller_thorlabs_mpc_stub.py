@@ -109,6 +109,10 @@ class PolarizationControllerThorlabsMPC320Stub(
         current_value = self.current_state[chan_ident].to("mpc320_steps").magnitude
         jog_value_magnitude = jog_value.to("mpc320_steps").magnitude
 
+        sleep_delta_position(
+            self.time_scaling_factor, self.current_params["velocity"], jog_value
+        )
+
         if jog_direction == JogDirection.FORWARD:
             new_value_magnitude = current_value + jog_value_magnitude
         else:  # Reverse
@@ -154,25 +158,11 @@ class PolarizationControllerThorlabsMPC320Stub(
         jog_step_2: None | Quantity = None,
         jog_step_3: None | Quantity = None,
     ) -> None:
-        if velocity is not None:
-            self.current_params["velocity"] = cast(
-                Quantity, velocity.to("mpc320_velocity")
-            )
-        if home_position is not None:
-            self.current_params["home_position"] = cast(
-                Quantity, home_position.to("mpc320_steps")
-            )
-        if jog_step_1 is not None:
-            self.current_params["jog_step_1"] = cast(
-                Quantity, jog_step_1.to("mpc320_steps")
-            )
-        if jog_step_2 is not None:
-            self.current_params["jog_step_2"] = cast(
-                Quantity, jog_step_2.to("mpc320_steps")
-            )
-        if jog_step_3 is not None:
-            self.current_params["jog_step_3"] = cast(
-                Quantity, jog_step_3.to("mpc320_steps")
-            )
+
+        self.current_params["velocity"] = velocity
+        self.current_params["home_position"] = home_position
+        self.current_params["jog_step_1"] = jog_step_1
+        self.current_params["jog_step_2"] = jog_step_2
+        self.current_params["jog_step_3"] = jog_step_3
 
         self.log.info(f"[MPC Stub] Updated parameters: {self.current_params}")

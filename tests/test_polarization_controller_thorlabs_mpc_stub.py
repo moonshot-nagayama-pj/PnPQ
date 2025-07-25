@@ -71,17 +71,67 @@ def test_move_absolute_sleep(
     assert mocked_sleep.call_args[0][0] == expected_sleep_time
 
 
-def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
-    """Test that an invalid time multiplier raises an error."""
+@pytest.mark.parametrize(
+    "jog_step, jog_direction, expected_sleep_time, time_scaling_factor",
+    [
+        (
+            1370 * pnpq_ureg.mpc320_step,
+            JogDirection.FORWARD,
+            0.5,
+            1,
+        ),  # 1370 steps at 1370*2 steps/second
+        (
+            685 * pnpq_ureg.mpc320_step,
+            JogDirection.REVERSE,
+            0.25,
+            1,
+        ),  # 685 steps at 1370*2 steps/second
+        (
+            1370 * pnpq_ureg.mpc320_step,
+            JogDirection.FORWARD,
+            1.0,
+            2,
+        ),  # Two times more time
+        (
+            685 * pnpq_ureg.mpc320_step,
+            JogDirection.REVERSE,
+            0.5,
+            2,
+        ),
+    ],
+)
+def test_jog_sleep(
+    mocked_sleep: mock.MagicMock,
+    jog_step: Quantity,
+    jog_direction: JogDirection,
+    expected_sleep_time: float,
+    time_scaling_factor: float,
+) -> None:
+    """Test that the stub sleeps for the correct amount of time when jogging."""
+
     params = PolarizationControllerParams()
     params["velocity"] = 2 * 1370 * pnpq_ureg("mpc320_step / second")
+
+    mpc = PolarizationControllerThorlabsMPC320Stub(
+        time_scaling_factor=time_scaling_factor, current_params=params
+    )
+
+    mpc.set_params(jog_step_1=jog_step)
+
+    mpc.jog(ChanIdent.CHANNEL_1, jog_direction)
+
+    # Assert the sleep behavior
+    assert mocked_sleep.call_count == 1
+    assert mocked_sleep.call_args[0][0] == expected_sleep_time
+
+
+def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
+    """Test that an invalid time multiplier raises an error."""
 
     with pytest.raises(
         ValueError, match="Time multiplier must be greater than or equal to 0.0."
     ):
-        PolarizationControllerThorlabsMPC320Stub(
-            time_scaling_factor=-1.0, current_params=params
-        )
+        PolarizationControllerThorlabsMPC320Stub(time_scaling_factor=-1.0)
 
 
 @pytest.mark.parametrize(
@@ -93,7 +143,7 @@ def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
         (685 * pnpq_ureg.mpc320_step, 0.5, 2),
     ],
 )
-def test_home_sleep_parametrized(
+def test_home_sleep(
     mocked_sleep: mock.MagicMock,
     initial_position: Quantity,
     expected_sleep_time: float,
@@ -167,3 +217,20 @@ def test_custom_home_position(
         stub_mpc.get_status(ChanIdent.CHANNEL_1).position * pnpq_ureg.mpc320_step
     )
     assert mpc_position.to("degree").magnitude == pytest.approx(45, abs=0.05)
+
+
+def test_params(stub_mpc: AbstractPolarizationControllerThorlabsMPC) -> None:
+    stub_mpc.set_params(
+        velocity=1 * pnpq_ureg("mpc320_velocity"),
+        home_position=2 * pnpq_ureg.mpc320_step,
+        jog_step_1=3 * pnpq_ureg.mpc320_step,
+        jog_step_2=4 * pnpq_ureg.mpc320_step,
+        jog_step_3=5 * pnpq_ureg.mpc320_step,
+    )
+    params = stub_mpc.get_params()
+
+    assert params["velocity"].to("mpc320_velocity").magnitude == 1
+    assert params["home_position"].to("mpc320_step").magnitude == 2
+    assert params["jog_step_1"].to("mpc320_step").magnitude == 3
+    assert params["jog_step_2"].to("mpc320_step").magnitude == 4
+    assert params["jog_step_3"].to("mpc320_step").magnitude == 5

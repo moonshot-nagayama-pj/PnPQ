@@ -1,4 +1,8 @@
+from typing import Generator
+from unittest import mock
+
 import pytest
+from pint import Quantity
 
 from pnpq.apt.protocol import (
     ChanIdent,
@@ -8,7 +12,12 @@ from pnpq.apt.protocol import (
     LimitSwitch,
     StopMode,
 )
-from pnpq.devices.waveplate_thorlabs_k10cr1 import AbstractWaveplateThorlabsK10CR1
+from pnpq.devices.waveplate_thorlabs_k10cr1 import (
+    AbstractWaveplateThorlabsK10CR1,
+    WaveplateHomeParams,
+    WaveplateJogParams,
+    WaveplateVelocityParams,
+)
 from pnpq.devices.waveplate_thorlabs_k10cr1_stub import WaveplateThorlabsK10CR1Stub
 from pnpq.units import pnpq_ureg
 
@@ -17,6 +26,12 @@ from pnpq.units import pnpq_ureg
 def stub_waveplate_fixture() -> AbstractWaveplateThorlabsK10CR1:
     waveplate = WaveplateThorlabsK10CR1Stub()
     return waveplate
+
+
+@pytest.fixture(name="mocked_sleep")
+def mocked_sleep_fixture() -> Generator[mock.MagicMock]:
+    with mock.patch("time.sleep", mock.MagicMock()) as mocked_sleep:
+        yield mocked_sleep
 
 
 def test_move_absolute(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
@@ -31,10 +46,136 @@ def test_move_absolute(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
     assert waveplate_position.to("degree").magnitude == pytest.approx(45)
 
 
+@pytest.mark.parametrize(
+    "position, expected_sleep_time, time_scaling_factor",
+    [
+        (136533 * pnpq_ureg.k10cr1_step, 1.0, 1),
+        (273066 * pnpq_ureg.k10cr1_step, 2.0, 1),
+        (136533 * pnpq_ureg.k10cr1_step, 2.0, 2),  # Two times more time
+        (273066 * pnpq_ureg.k10cr1_step, 4.0, 2),
+    ],
+)
+def test_move_absolute_sleep(
+    mocked_sleep: mock.MagicMock,
+    position: Quantity,
+    expected_sleep_time: float,
+    time_scaling_factor: float,
+) -> None:
+
+    waveplate_velocity_params = WaveplateVelocityParams()
+    waveplate_velocity_params["maximum_velocity"] = 136533 * pnpq_ureg(
+        "k10cr1_step / second"
+    )
+    waveplate = WaveplateThorlabsK10CR1Stub(
+        time_scaling_factor=time_scaling_factor,
+        current_velocity_params=waveplate_velocity_params,
+    )
+
+    waveplate.move_absolute(position)
+
+    assert mocked_sleep.call_count == 1
+    assert mocked_sleep.call_args[0][0] == expected_sleep_time
+
+
+def test_move_absolute_sleep_invalid_time_scaling_factor() -> None:
+    """Test that an invalid time multiplier raises an error."""
+
+    with pytest.raises(
+        ValueError, match="Time multiplier must be greater than or equal to 0.0."
+    ):
+        WaveplateThorlabsK10CR1Stub(time_scaling_factor=-1.0)
+
+
+@pytest.mark.parametrize(
+    "jog_step, jog_direction, expected_sleep_time, time_scaling_factor",
+    [
+        (
+            136533 * pnpq_ureg.k10cr1_step,
+            JogDirection.FORWARD,
+            1.0,
+            1,
+        ),
+        (
+            136533 * pnpq_ureg.k10cr1_step,
+            JogDirection.REVERSE,
+            1.0,
+            1,
+        ),
+        (
+            136533 * pnpq_ureg.k10cr1_step,
+            JogDirection.FORWARD,
+            2.0,
+            2,
+        ),
+        (
+            136533 * pnpq_ureg.k10cr1_step,
+            JogDirection.REVERSE,
+            2.0,
+            2,
+        ),
+    ],
+)
+def test_jog_sleep(
+    mocked_sleep: mock.MagicMock,
+    jog_step: Quantity,
+    jog_direction: JogDirection,
+    expected_sleep_time: float,
+    time_scaling_factor: float,
+) -> None:
+
+    params = WaveplateJogParams()
+    params["jog_maximum_velocity"] = 136533 * pnpq_ureg("k10cr1_step / second")
+    params["jog_step_size"] = jog_step
+
+    waveplate = WaveplateThorlabsK10CR1Stub(
+        time_scaling_factor=time_scaling_factor, current_jog_params=params
+    )
+
+    waveplate.set_jogparams(jog_step_size=jog_step)
+
+    waveplate.jog(jog_direction)
+
+    assert mocked_sleep.call_count == 1
+    assert mocked_sleep.call_args[0][0] == expected_sleep_time
+
+
+@pytest.mark.parametrize(
+    "initial_position, expected_sleep_time, time_scaling_factor",
+    [
+        (136533 * pnpq_ureg.k10cr1_step, 1.0, 1),
+        (273066 * pnpq_ureg.k10cr1_step, 2.0, 1),
+        (136533 * pnpq_ureg.k10cr1_step, 2.0, 2),
+        (273066 * pnpq_ureg.k10cr1_step, 4.0, 2),
+    ],
+)
+def test_home_sleep(
+    mocked_sleep: mock.MagicMock,
+    initial_position: Quantity,
+    expected_sleep_time: float,
+    time_scaling_factor: float,
+) -> None:
+
+    params = WaveplateHomeParams()
+    params["home_velocity"] = 136533 * pnpq_ureg("k10cr1_step / second")
+
+    waveplate = WaveplateThorlabsK10CR1Stub(
+        time_scaling_factor=time_scaling_factor, current_home_params=params
+    )
+
+    waveplate.move_absolute(initial_position)
+
+    waveplate.home()
+
+    assert mocked_sleep.call_count == 2  # One for move_absolute, one for home
+    assert mocked_sleep.call_args[0][0] == expected_sleep_time
+
+
 def test_jog(stub_waveplate: AbstractWaveplateThorlabsK10CR1) -> None:
     position = 100 * pnpq_ureg.k10cr1_step
     stub_waveplate.move_absolute(position)
-    # Using default jog step of 10 steps
+
+    stub_waveplate.get_jogparams()["jog_step_size"] = 10 * pnpq_ureg.k10cr1_step
+
     stub_waveplate.jog(JogDirection.FORWARD)
 
     # Currently throws a mypy error because current_state is not in the AbstractWaveplateThorlabsK10CR1.
