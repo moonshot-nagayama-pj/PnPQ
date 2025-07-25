@@ -75,6 +75,8 @@ class OpticalDelayLineJogParams(UserDict[str, Any]):
         self.__setitem__("jog_stop_mode", StopMode.CONTROLLED)
 
     def __setitem__(self, key: str, value: Any) -> None:
+
+        # TODO When setting an invalid key to None, ValueError is not raised. Fix this for all Params UserDicts.
         if value is None:
             return
 
