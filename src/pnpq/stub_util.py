@@ -1,7 +1,7 @@
 import time
 
 import structlog
-from pint import Quantity
+from pint import DimensionalityError, Quantity
 
 log = structlog.get_logger()
 
@@ -18,12 +18,9 @@ def sleep_delta_position(
     # However, there are no transformations defined between device-specific velocities,
     # device-specific positions, and standard time units (seconds).
     #
-    # Therefore, we first convert the delta position and velocity to a common unit
-    # in order to calculate the time to sleep.
-    #
-    # We must split the logic based on the velocity units,
-    # as some devices use degrees (mpc320, k10cr1) and others use meters (kbd101).
-    if velocity.units in ("mpc320_velocity", "k10cr1_velocity"):
+    # Therefore, we will first try to convert the velocity and delta position to degrees or meters,
+    # and if that fails, we will raise an error.
+    try:
         time_to_move = (
             abs(
                 (
@@ -32,18 +29,20 @@ def sleep_delta_position(
             )
             * time_multiplier
         )
-    elif velocity.units in ("kbd101_velocity",):
-
-        time_to_move = (
-            abs(
-                (delta_position.to("meters") / velocity.to("meters / second")).magnitude
+    except DimensionalityError as e:
+        try:
+            time_to_move = (
+                abs(
+                    (
+                        delta_position.to("meter") / velocity.to("meters / second")
+                    ).magnitude
+                )
+                * time_multiplier
             )
-            * time_multiplier
-        )
-    else:
-        raise AttributeError(
-            f"Unsupported velocity units: {velocity.units}. Supported units are 'mpc320_velocity', 'k10cr1_velocity', and 'kbd101_velocity'."
-        )
+        except DimensionalityError:
+            raise AttributeError(
+                f"Unsupported velocity units: {velocity.units}. Supported units are 'mpc320_velocity', 'k10cr1_velocity', and 'kbd101_velocity'."
+            ) from e
 
     time.sleep(time_to_move)
 

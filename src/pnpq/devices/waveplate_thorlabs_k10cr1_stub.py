@@ -171,9 +171,7 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         delta_position: Quantity = self.current_state[self._chan_ident] - home_value
         sleep_delta_position(
             self.time_scaling_factor,
-            self.current_home_params[
-                "home_velocity"
-            ],  # NOTE: Should it be maximum_velocity?
+            self.current_home_params["home_velocity"],
             delta_position,
         )
 

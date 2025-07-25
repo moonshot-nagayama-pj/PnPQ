@@ -67,9 +67,7 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
 
         sleep_delta_position(
             self.time_scaling_factor,
-            self.current_home_params[
-                "home_velocity"
-            ],  # NOTE: Should it be maximum_velocity?
+            self.current_home_params["home_velocity"],
             delta_position,
         )
 
@@ -96,7 +94,7 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
             self.time_scaling_factor,
             self.get_velparams()["maximum_velocity"],
             delta_position,
-        )  # NOTE: Should it be maximum_velocity or minimum_velocity? Or something in between?
+        )  # TODO: Should it be maximum_velocity or minimum_velocity? Or something in between?
 
         self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
 
