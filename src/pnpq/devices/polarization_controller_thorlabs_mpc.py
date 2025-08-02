@@ -339,6 +339,10 @@ class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMP
         self.set_channel_enabled(chan_ident, False)
 
     def get_params(self) -> PolarizationControllerParams:
+
+        self.log.info("self.connection.send_message_expect_reply",
+                      message=self.connection.send_message_expect_reply)
+
         params = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_POL_REQ_PARAMS(
                 destination=Address.GENERIC_USB,
@@ -346,6 +350,9 @@ class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMP
             ),
             lambda message: (isinstance(message, AptMessage_MGMSG_POL_GET_PARAMS)),
         )
+
+        self.log.info("Received params", params=params)
+
         assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
         result = PolarizationControllerParams()
         result["velocity"] = params.velocity * pnpq_ureg.mpc320_velocity
