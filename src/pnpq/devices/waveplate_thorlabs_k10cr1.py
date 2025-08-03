@@ -589,6 +589,5 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 and message.source == Address.GENERIC_USB
             ),
         )
-
         assert isinstance(status_message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
         return status_message.status.HOMED
