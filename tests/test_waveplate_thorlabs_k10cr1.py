@@ -19,8 +19,6 @@ from pnpq.apt.protocol import (
 from pnpq.devices.waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
 from pnpq.units import pnpq_ureg
 
-log = structlog.get_logger()
-
 
 @pytest.fixture(name="mock_connection", scope="function")
 def mock_connection_fixture() -> Any:
