@@ -2,7 +2,6 @@ from typing import Any, Callable
 from unittest.mock import Mock, create_autospec
 
 import pytest
-import structlog
 
 from pnpq.apt.connection import AptConnection
 from pnpq.apt.protocol import (
