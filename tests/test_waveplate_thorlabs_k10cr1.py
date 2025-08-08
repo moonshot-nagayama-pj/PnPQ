@@ -20,7 +20,7 @@ from pnpq.units import pnpq_ureg
 
 
 @pytest.fixture(name="mock_connection", scope="function")
-def mock_connection_fixture() -> Any:
+def mock_connection_fixture() -> Mock:
     connection = create_autospec(AptConnection)
     connection.stop_event = Mock()
     connection.tx_ordered_sender_awaiting_reply = Mock()
