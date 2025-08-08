@@ -7,9 +7,8 @@ from pnpq.devices.switch_thorlabs_osw1310e import OpticalSwitchThorlabs1310E, St
 
 @pytest.fixture(name="device", scope="function")
 def device_fixture() -> Generator[OpticalSwitchThorlabs1310E]:
-    device = OpticalSwitchThorlabs1310E(serial_number="12345678")
-    device.open()
-    yield device
+    with OpticalSwitchThorlabs1310E(serial_number="M00902593") as device:
+        yield device
 
 
 def test_bar_state(device: OpticalSwitchThorlabs1310E) -> None:
