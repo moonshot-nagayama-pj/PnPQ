@@ -10,7 +10,6 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
-    AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_REQ_STATUSUPDATE,
     ChanIdent,
     Status,
@@ -68,9 +67,11 @@ def test_move_absolute(mock_connection: Any) -> None:
             )
 
             assert match_reply_callback(reply_message)
+        return None
 
-
-    mock_connection.send_message_expect_reply.side_effect = mock_send_message_expect_reply
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
 
     controller = WaveplateThorlabsK10CR1(connection=mock_connection)
 
