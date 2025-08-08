@@ -31,8 +31,6 @@ from pnpq.units import pnpq_ureg
 
 @pytest.fixture(name="mock_connection", scope="function")
 def mock_connection_fixture() -> Mock:
-@pytest.fixture(name="mock_connection", scope="function")
-def mock_connection_fixture() -> Any:
     connection = create_autospec(AptConnection)
     connection.stop_event = Mock()
     connection.tx_ordered_sender_awaiting_reply = Mock()
@@ -50,13 +48,6 @@ def test_move_absolute(mock_connection: Any) -> None:
         position=0,
         status=Status(INMOTIONCCW=True, INMOTIONCW=True, HOMED=True),
     )
-    connection.stop_event = Mock()
-    connection.tx_ordered_sender_awaiting_reply = Mock()
-    connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
-    return connection
-
-
-def test_move_absolute(mock_connection: Any) -> None:
 
     def mock_send_message_expect_reply(
         sent_message: AptMessage,
@@ -118,51 +109,6 @@ def test_move_absolute(mock_connection: Any) -> None:
     assert mock_connection.send_message_expect_reply.call_count == 2
 
 
-
-def test_jog(mock_connection: Any) -> None:
-    def mock_send_message_expect_reply(
-        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
-    ) -> None:
-        if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_JOG):
-            assert sent_message.chan_ident == ChanIdent(1)
-            assert sent_message.jog_direction == JogDirection.FORWARD
-
-            # A hypothetical reply message from the device
-            reply_message = AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
-                chan_ident=sent_message.chan_ident,
-                destination=Address.HOST_CONTROLLER,
-                source=Address.GENERIC_USB,
-            )
-
-            assert 1 == 2
-
-            assert match_reply_callback(reply_message)
-
-    ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
-        chan_ident=ChanIdent(1),
-        destination=Address.HOST_CONTROLLER,
-        source=Address.GENERIC_USB,
-        enc_count=0,
-        position=0,
-        status=Status(INMOTIONCCW=True, INMOTIONCW=True, HOMED=True),
-    )
-
-    mock_connection.send_message_expect_reply.side_effect = (
-        ustatus_message,
-        mock_send_message_expect_reply,
-    )
-
-    mock_connection.tx_ordered_sender_awaiting_reply = Mock()
-    mock_connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
-
-    controller = WaveplateThorlabsK10CR1(connection=mock_connection)
-
-    controller.jog(jog_direction=JogDirection.FORWARD)
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
 
 log = structlog.get_logger()
 
@@ -232,98 +178,6 @@ def test_velparams(mock_connection: Any) -> None:
     assert mock_connection.send_message_expect_reply.call_count == 2
     assert mock_connection.send_message_expect_reply.call_count == 2
 
-
-
-def test_jog(mock_connection: Any) -> None:
-    def mock_send_message_expect_reply(
-        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
-    ) -> None:
-        if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_JOG):
-            assert sent_message.chan_ident == ChanIdent(1)
-            assert sent_message.jog_direction == JogDirection.FORWARD
-
-            # A hypothetical reply message from the device
-            reply_message = AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
-                chan_ident=sent_message.chan_ident,
-                destination=Address.HOST_CONTROLLER,
-                source=Address.GENERIC_USB,
-            )
-
-            assert 1 == 2
-
-            assert match_reply_callback(reply_message)
-
-    ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
-        chan_ident=ChanIdent(1),
-        destination=Address.HOST_CONTROLLER,
-        source=Address.GENERIC_USB,
-        enc_count=0,
-        position=0,
-        status=Status(INMOTIONCCW=True, INMOTIONCW=True, HOMED=True),
-    )
-
-    mock_connection.send_message_expect_reply.side_effect = (
-        ustatus_message,
-        mock_send_message_expect_reply,
-    )
-
-    mock_connection.tx_ordered_sender_awaiting_reply = Mock()
-    mock_connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
-
-    controller = WaveplateThorlabsK10CR1(connection=mock_connection)
-
-    controller.jog(jog_direction=JogDirection.FORWARD)
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-log = structlog.get_logger()
-
-
-def test_velparams(mock_connection: Any) -> None:
-    def mock_send_message_expect_reply(
-        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
-    ) -> None:
-        if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_JOG):
-            assert sent_message.chan_ident == ChanIdent(1)
-            assert sent_message.jog_direction == JogDirection.FORWARD
-
-            # A hypothetical reply message from the device
-            reply_message = AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
-                chan_ident=sent_message.chan_ident,
-                destination=Address.HOST_CONTROLLER,
-                source=Address.GENERIC_USB,
-            )
-
-            assert match_reply_callback(reply_message)
-
-    ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
-        chan_ident=ChanIdent(1),
-        destination=Address.HOST_CONTROLLER,
-        source=Address.GENERIC_USB,
-        enc_count=0,
-        position=0,
-        status=Status(INMOTIONCCW=True, INMOTIONCW=True, HOMED=True),
-    )
-
-    mock_connection.send_message_expect_reply.side_effect = (
-        ustatus_message,
-        mock_send_message_expect_reply,
-    )
-
-    mock_connection.tx_ordered_sender_awaiting_reply = Mock()
-    mock_connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
-
-    controller = WaveplateThorlabsK10CR1(connection=mock_connection)
-
-    controller.get_velparams()
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
 
 
 
