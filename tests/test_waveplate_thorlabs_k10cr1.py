@@ -29,7 +29,7 @@ def mock_connection_fixture() -> Mock:
     return connection
 
 
-def test_move_absolute(mock_connection: Any) -> None:
+def test_move_absolute(mock_connection: Mock) -> None:
     ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
         chan_ident=ChanIdent(1),
         destination=Address.HOST_CONTROLLER,
