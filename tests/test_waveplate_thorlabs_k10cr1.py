@@ -10,6 +10,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+    AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_REQ_STATUSUPDATE,
     ChanIdent,
     Status,
@@ -25,6 +26,7 @@ def mock_connection_fixture() -> Mock:
     connection.stop_event = Mock()
     connection.tx_ordered_sender_awaiting_reply = Mock()
     connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
+    assert isinstance(connection, Mock)
     return connection
 
 
@@ -46,7 +48,10 @@ def test_move_absolute(mock_connection: Any) -> None:
             ],
             bool,
         ],
-    ) -> None:
+    ) -> AptMessage | None:
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
+            return ustatus_message
+
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_ABSOLUTE):
             assert sent_message.absolute_distance == 10
             assert sent_message.chan_ident == ChanIdent(1)
@@ -64,22 +69,8 @@ def test_move_absolute(mock_connection: Any) -> None:
 
             assert match_reply_callback(reply_message)
 
-    def dynamic_mock() -> Callable[..., Any]:
-        call_count = 0
 
-        def side_effect(*args: Any, **kwargs: Any) -> Any:
-            nonlocal call_count
-            call_count += 1
-
-            if call_count == 1:
-                return ustatus_message
-            if call_count == 2:
-                return mock_send_message_expect_reply(*args, **kwargs)
-            raise RuntimeError("Unexpected call count")
-
-        return side_effect
-
-    mock_connection.send_message_expect_reply.side_effect = dynamic_mock()
+    mock_connection.send_message_expect_reply.side_effect = mock_send_message_expect_reply
 
     controller = WaveplateThorlabsK10CR1(connection=mock_connection)
 
