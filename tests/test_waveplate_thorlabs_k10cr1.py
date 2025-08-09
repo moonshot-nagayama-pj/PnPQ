@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Callable
 from unittest.mock import Mock, create_autospec
 
 import pytest
