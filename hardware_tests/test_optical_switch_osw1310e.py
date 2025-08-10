@@ -1,21 +1,29 @@
 from typing import Generator
 
 import pytest
+import time
 
-from pnpq.devices.switch_thorlabs_osw1310e import OpticalSwitchThorlabs1310E, State
+from pnpq.devices.switch_thorlabs_osw1310e import OpticalSwitchThorlabs1310E, AbstractOpticalSwitchThorlabs1310E, State
 
+import structlog
+
+log = structlog.get_logger()
 
 @pytest.fixture(name="device", scope="function")
-def device_fixture() -> Generator[OpticalSwitchThorlabs1310E]:
-    with OpticalSwitchThorlabs1310E(serial_number="M00902593") as device:
+def device_fixture() -> Generator[AbstractOpticalSwitchThorlabs1310E]:
+    with OpticalSwitchThorlabs1310E(serial_number="OS7G01RE") as device:
         yield device
 
 
-def test_bar_state(device: OpticalSwitchThorlabs1310E) -> None:
+def test_set_state(device: AbstractOpticalSwitchThorlabs1310E) -> None:
     device.set_state(State.BAR)
     assert device.get_status() == State.BAR
-
-
-def test_cross_state(device: OpticalSwitchThorlabs1310E) -> None:
+    time.sleep(1)
     device.set_state(State.CROSS)
     assert device.get_status() == State.CROSS
+
+def test_get_device_info(device: AbstractOpticalSwitchThorlabs1310E) -> None:
+    query_type = device.get_query_type()
+    log.info(f"Query type: {query_type}")
+    board_name = device.get_board_name()
+    log.info(f"Board name: {board_name}")

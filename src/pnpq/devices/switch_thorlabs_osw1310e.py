@@ -111,7 +111,7 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
 
         object.__setattr__(
             self,
-            "__connection",
+            "_OpticalSwitchThorlabs1310E__connection",
             Serial(
                 baudrate=self.baudrate,
                 bytesize=self.bytesize,
