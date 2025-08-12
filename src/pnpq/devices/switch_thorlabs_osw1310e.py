@@ -51,9 +51,7 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
 
     # All other properties are optional.
 
-    # Serial connection parameters. These defaults are used by all
-    # known Thorlabs devices that implement the APT protocol and do
-    # not need to be changed.
+    # Serial connection parameters.
     baudrate: int = field(default=115200)
     bytesize: int = field(default=serial.EIGHTBITS)
     exclusive: bool = field(default=True)
@@ -158,7 +156,7 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
         command = b"S?\n"
         self.__connection.write(command)
         response = self.__read_serial_response()
-        return State(int(str(response, "UTF-8")))
+        return State(int(response.decode("utf-8")))
 
     def get_query_type(self) -> str:
         with self.__communication_lock:
