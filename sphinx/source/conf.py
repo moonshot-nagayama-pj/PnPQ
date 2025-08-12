@@ -14,9 +14,15 @@ author = "PnPQ contributors"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "sphinxcontrib.apidoc",
+    "sphinx.ext.apidoc",
 ]
-apidoc_module_dir = "../../src"
+apidoc_modules = [
+    {
+        'path': '../../src/pnpq',
+        'destination': 'api/',
+        'separate_modules': True,
+    },
+]
 autodoc_typehints = "description"
 
 templates_path = ["_templates"]
@@ -27,3 +33,6 @@ exclude_patterns: list[str] = []
 
 html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
+
+# Suppress toc not included warning
+suppress_warnings = ['toc.not_included']
