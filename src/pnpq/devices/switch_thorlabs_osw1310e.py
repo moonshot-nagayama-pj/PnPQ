@@ -18,22 +18,28 @@ class State(Enum):
 
 
 class AbstractOpticalSwitchThorlabs1310E(ABC):
+    """Provides a thread-safe and blocking API for interacting with the Thorlabs OSW-1310E optical switch.
+    Device-specific specifications can be found here: https://www.thorlabs.com/thorproduct.cfm?partnumber=OSW12-1310E.
+    """
+
     @abstractmethod
     def set_state(self, state: State) -> None:
-        """Set the switch to the specified state."""
+        """Set the switch to the specified state using the State enum. The state will either be BAR or CROSS.
+        This function is idempotent; if the switch is already in the desired state, setting it to the same state again will not cause an error.
+        """
 
     @abstractmethod
     def get_status(self) -> State:
-        """Get the current state of the switch."""
+        """Get the current state of the switch. The state will either be BAR or CROSS."""
 
     # Get system information
     @abstractmethod
     def get_query_type(self) -> str:
-        """Get the query type of the switch."""
+        """Get the OSW board type code according to the configuration table and return it in a string format."""
 
     @abstractmethod
     def get_board_name(self) -> str:
-        """Get the board name of the switch."""
+        """Get the name and the firmware version of the switch and return it in a string format."""
 
     @abstractmethod
     def open(self) -> None:
@@ -42,6 +48,19 @@ class AbstractOpticalSwitchThorlabs1310E(ABC):
     @abstractmethod
     def close(self) -> None:
         """Close the serial connection to the switch."""
+
+    @abstractmethod
+    def __enter__(self) -> "AbstractOpticalSwitchThorlabs1310E":
+        pass
+
+    @abstractmethod
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        pass
 
 
 @dataclass(frozen=True, kw_only=True)
