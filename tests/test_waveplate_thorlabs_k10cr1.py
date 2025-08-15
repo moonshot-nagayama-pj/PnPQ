@@ -1,5 +1,5 @@
 from typing import Callable
-from unittest.mock import Mock, create_autospec
+from unittest.mock import create_autospec
 
 from pnpq.apt.connection import AptConnection
 from pnpq.apt.protocol import (
@@ -13,6 +13,7 @@ from pnpq.apt.protocol import (
     UStatus,
 )
 from pnpq.devices.waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
+from pnpq.errors import InvalidStateException
 from pnpq.units import pnpq_ureg
 
 
@@ -59,8 +60,6 @@ def test_move_absolute() -> None:
         ustatus_message,
         mock_send_message_expect_reply,
     ]
-    connection.tx_ordered_sender_awaiting_reply = Mock()
-    connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
 
     controller = WaveplateThorlabsK10CR1(connection=connection)
 
@@ -70,3 +69,9 @@ def test_move_absolute() -> None:
     # Enabling and disabling the channel doesn't use an expect reply in K10CR1
     # Second call for getting the status update to check if the device is homed
     assert connection.send_message_expect_reply.call_count == 2
+
+    # Shut down the polling thread
+    def mock_send_message_unordered(message: AptMessage) -> None:
+        raise InvalidStateException("Tried to use a closed AptConnection object.")
+
+    connection.send_message_unordered.side_effect = mock_send_message_unordered

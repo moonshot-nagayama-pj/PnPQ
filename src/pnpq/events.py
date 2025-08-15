@@ -5,6 +5,7 @@ from enum import StrEnum, auto
 @enum.unique
 class Event(StrEnum):
     APT_CONNECTION_ERROR = auto()
+    APT_POLLER_EXIT = auto()
     RX_MESSAGE_KNOWN = auto()
     RX_MESSAGE_UNKNOWN = auto()
     TX_MESSAGE_ORDERED = auto()
