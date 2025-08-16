@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "PnPQ"
+license: "BSD-3-Clause"
+type: software
+abstract: "Python library for laboratory devices often used in quantum networking and computing testbeds."
+message: "If our software significantly contributed to your research, we ask that you cite it using the concept DOI in this file. DOIs are also available for each release to indicate which specific version of the software was used."
+authors:
+  - given-names: Amin
+    family-names: Taherkhani
+    orcid: "https://orcid.org/0000-0003-3044-6487"
+  - given-names: Andrew
+    family-names: Todd
+    orcid: "https://orcid.org/0009-0008-5423-3500"
+  - given-names: Lars
+    family-names: Matsumiya
+  - given-names: Tom
+    family-names: Shen
+    orcid: "https://orcid.org/0009-0000-1747-1050"
+keywords:
+  - optics
+  - ozoptics
+  - physics
+  - quantum
+  - thorlabs
