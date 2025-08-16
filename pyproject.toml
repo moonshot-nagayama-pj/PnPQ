@@ -14,7 +14,7 @@ authors = [
     { name = "Lars Matsumiya", email = "larsmatsumiya@gmail.com" },
     { name = "Tom Shen", email = "tomshen@keio.jp" },
 ]
-description = "Control library for laboratory devices often used in quantum networking and computing testbeds."
+description = "Python library for laboratory devices often used in quantum networking and computing testbeds."
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["LICENSE.md"]
