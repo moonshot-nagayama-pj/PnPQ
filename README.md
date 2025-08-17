@@ -39,3 +39,11 @@ Please see [`CONTRIBUTING.md`](https://github.com/moonshot-nagayama-pj/public-do
 ## Getting help
 
 If you have a specific question about how to use our software that is not answered by the documentation, please feel free to create a GitHub issue.
+
+## Citing
+
+If our software significantly contributed to your research, we ask that you cite it in your publications.
+
+The best way to do so is by using the information [in our `CITATION.cff` file](CITATION.cff). GitHub automatically generates APA and BibTeX-style citations from this file and makes them available from the "Cite this repository" link on the right-hand side.
+
+These automatically-generated citations will include a [Zenodo "concept" DOI](https://zenodo.org/help/versioning), which points to the software as a whole. If you wish to indicate the specific version of our software that you used, you can find version-specific DOIs by first looking up [our concept DOI](https://doi.org/10.5281/zenodo.16886214) and then checking the list of available versions at Zenodo.

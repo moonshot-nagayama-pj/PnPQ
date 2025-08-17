@@ -50,6 +50,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "black>=24.8.0",
+    "cffconvert>=2.0.0",
     "coverage>=7.6.1",
     "isort>=5.13.2",
     "mypy>=1.11.2",
