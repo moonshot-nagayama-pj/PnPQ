@@ -44,6 +44,10 @@ If you have a specific question about how to use our software that is not answer
 
 If our software significantly contributed to your research, we ask that you cite it in your publications.
 
-The best way to do so is by using the information [in our `CITATION.cff` file](CITATION.cff). GitHub automatically generates APA and BibTeX-style citations from this file and makes them available from the "Cite this repository" link on the right-hand side.
+The best way to do so is by using the metadata in [our `CITATION.cff` file](CITATION.cff).
 
-These automatically-generated citations will include a [Zenodo "concept" DOI](https://zenodo.org/help/versioning), which points to the software as a whole. If you wish to indicate the specific version of our software that you used, you can find version-specific DOIs by first looking up [our concept DOI](https://doi.org/10.5281/zenodo.16886214) and then checking the list of available versions at Zenodo.
+GitHub automatically generates APA and BibTeX-style citations from this file and makes them available from the "Cite this repository" link on the right-hand side. However, these citations do not include our DOI, making it difficult to locate our software. Please try to include either:
+
+* The [concept DOI](https://zenodo.org/help/versioning), which points to the software as a whole: `10.5281/zenodo.16886214`.
+    - This can also be found in `CITATION.cff`.
+* A version-specific DOI, which can be found by first looking up [our concept DOI](https://doi.org/10.5281/zenodo.16886214) and then checking the list of available versions at Zenodo. A new DOI is generated for each release.
