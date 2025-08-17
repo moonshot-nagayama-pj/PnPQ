@@ -4,9 +4,9 @@ from typing import Generator
 import pytest
 import structlog
 
-from pnpq.devices.switch_thorlabs_osw1310e import (
-    AbstractOpticalSwitchThorlabs1310E,
-    OpticalSwitchThorlabs1310E,
+from pnpq.devices.switch_thorlabs_osw_e import (
+    AbstractOpticalSwitchThorlabsE,
+    OpticalSwitchThorlabsE,
     State,
 )
 
@@ -14,20 +14,20 @@ log = structlog.get_logger()
 
 
 @pytest.fixture(name="device", scope="function")
-def device_fixture() -> Generator[AbstractOpticalSwitchThorlabs1310E]:
-    with OpticalSwitchThorlabs1310E(serial_number="OS7G01RE") as device:
+def device_fixture() -> Generator[AbstractOpticalSwitchThorlabsE]:
+    with OpticalSwitchThorlabsE(serial_number="OS7G01RE") as device:
         yield device
 
 
-def test_set_state(device: AbstractOpticalSwitchThorlabs1310E) -> None:
+def test_set_state(device: AbstractOpticalSwitchThorlabsE) -> None:
     device.set_state(State.BAR)
-    assert device.get_status() == State.BAR
+    assert device.get_state() == State.BAR
     time.sleep(1)
     device.set_state(State.CROSS)
-    assert device.get_status() == State.CROSS
+    assert device.get_state() == State.CROSS
 
 
-def test_get_device_info(device: AbstractOpticalSwitchThorlabs1310E) -> None:
+def test_get_device_info(device: AbstractOpticalSwitchThorlabsE) -> None:
     query_type = device.get_query_type()
     log.info(f"Query type: {query_type}")
     board_name = device.get_board_name()

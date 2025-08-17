@@ -17,29 +17,40 @@ class State(Enum):
     CROSS = 2
 
 
-class AbstractOpticalSwitchThorlabs1310E(ABC):
-    """Provides a thread-safe and blocking API for interacting with the Thorlabs OSW-1310E optical switch.
-    Device-specific specifications can be found here: https://www.thorlabs.com/thorproduct.cfm?partnumber=OSW12-1310E.
+class AbstractOpticalSwitchThorlabsE(ABC):
+    """Provides a thread-safe and blocking API for interacting with the Thorlabs OSWxx-yyyyE series of optical switches.
+    This driver has been tested on the `OSW22-1310E <https://www.thorlabs.com/thorproduct.cfm?partnumber=OSW22-1310E>`__.
     """
 
     @abstractmethod
     def set_state(self, state: State) -> None:
-        """Set the switch to the specified state using the State enum. The state will either be BAR or CROSS.
+        """Set the switch to the specified state.
         This function is idempotent; if the switch is already in the desired state, setting it to the same state again will not cause an error.
+
+        :param state: The new :py:class:`State` to set the switch to.
         """
 
     @abstractmethod
-    def get_status(self) -> State:
-        """Get the current state of the switch. The state will either be BAR or CROSS."""
+    def get_state(self) -> State:
+        """Get the current state of the switch.
+
+        :return: The current state of the switch, defined in :py:class:`State`.
+        """
 
     # Get system information
     @abstractmethod
     def get_query_type(self) -> str:
-        """Get the OSW board type code according to the configuration table and return it in a string format."""
+        """Get the OSW board type code according to the configuration table.
+
+        :return: The OSW board type code in string.
+        """
 
     @abstractmethod
     def get_board_name(self) -> str:
-        """Get the name and the firmware version of the switch and return it in a string format."""
+        """Get the name and the firmware version of the switch.
+
+        :return: The name and firmware version of the switch in string.
+        """
 
     @abstractmethod
     def open(self) -> None:
@@ -50,7 +61,7 @@ class AbstractOpticalSwitchThorlabs1310E(ABC):
         """Close the serial connection to the switch."""
 
     @abstractmethod
-    def __enter__(self) -> "AbstractOpticalSwitchThorlabs1310E":
+    def __enter__(self) -> "AbstractOpticalSwitchThorlabsE":
         pass
 
     @abstractmethod
@@ -64,7 +75,7 @@ class AbstractOpticalSwitchThorlabs1310E(ABC):
 
 
 @dataclass(frozen=True, kw_only=True)
-class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
+class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
     # Required
     serial_number: str
 
@@ -86,7 +97,7 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
     # Add a mutex lock to ensure thread safety
     __communication_lock: Lock = field(default_factory=Lock, init=False)
 
-    def __enter__(self) -> "OpticalSwitchThorlabs1310E":
+    def __enter__(self) -> "OpticalSwitchThorlabsE":
         self.open()
         return self
 
@@ -163,14 +174,14 @@ class OpticalSwitchThorlabs1310E(AbstractOpticalSwitchThorlabs1310E):
 
             while check_timeout():
                 time.sleep(0.3)
-                if self.__get_status() == state:
+                if self.__get_state() == state:
                     break
 
-    def get_status(self) -> State:
+    def get_state(self) -> State:
         with self.__communication_lock:
-            return self.__get_status()
+            return self.__get_state()
 
-    def __get_status(self) -> State:
+    def __get_state(self) -> State:
         """Private method to get the status of the switch without locks. This is used to check the status during set_state."""
         command = b"S?\n"
         self.__connection.write(command)
