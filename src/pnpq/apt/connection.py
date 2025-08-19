@@ -1,4 +1,3 @@
-import atexit
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -208,18 +207,17 @@ class AptConnection(AbstractAptConnection):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        self._close(client_exit=True, e=exc_val)
+        self._close(e=exc_val)
 
     def open(self) -> None:
         with self._open_close_lock:
             self._open()
 
     def close(self) -> None:
-        self._close(client_exit=True)
+        self._close()
 
     def is_closed(self) -> bool:
-        with self._open_close_lock:
-            return self._is_closed()
+        return not self._opened_event.is_set()
 
     def send_message_unordered(self, message: AptMessage) -> None:
         """Send a message as soon as the serial connection lock will
@@ -229,9 +227,7 @@ class AptConnection(AbstractAptConnection):
 
         """
         self._fail_if_closed()
-        with self._tx_lock:
-            self.log.debug(event=Event.TX_MESSAGE_UNORDERED, message=message)
-            self._connection.write(message.to_bytes())
+        self._send_message_unordered(message)
 
     def send_message_no_reply(self, message: AptMessage) -> None:
         """Send a message and return immediately, without waiting for any reply."""
@@ -279,7 +275,7 @@ class AptConnection(AbstractAptConnection):
     # Utility functions
 
     def _clean_buffer(self) -> None:
-        self.send_message_unordered(
+        self._send_message_unordered(
             AptMessage_MGMSG_HW_STOP_UPDATEMSGS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
@@ -310,6 +306,13 @@ class AptConnection(AbstractAptConnection):
             )
         assert port is not None
         return port
+
+    def _send_message_unordered(self, message: AptMessage) -> None:
+        # Private implementation of send message unordered without the _fail_if_closed() check.
+        # Used for flushing buffer once the connection is closed.
+        with self._tx_lock:
+            self.log.debug(event=Event.TX_MESSAGE_UNORDERED, message=message)
+            self._connection.write(message.to_bytes())
 
     # Open / close implementations
 
@@ -348,6 +351,8 @@ class AptConnection(AbstractAptConnection):
             ),
         )
 
+        self._opened_event.set()
+
         self._clean_buffer()
 
         # Start background threads.
@@ -365,10 +370,6 @@ class AptConnection(AbstractAptConnection):
         )
         self._tx_ordered_sender_thread.start()
 
-        atexit.register(self.close)
-
-        self._opened_event.set()
-
         # Don't wait for a reply to this, just in case the device
         # doesn't support this command. The reply will still be
         # logged for debugging.
@@ -379,23 +380,21 @@ class AptConnection(AbstractAptConnection):
             )
         )
 
-    def _close(self, client_exit: bool = False, e: BaseException | None = None) -> None:
+    def _close(self, e: BaseException | None = None) -> None:
         with self._open_close_lock:
-            self._close_inner(client_exit=client_exit, e=e)
+            self._close_inner(e=e)
 
     # pylint: disable=R0912
-    def _close_inner(self, client_exit: bool, e: BaseException | None) -> None:
-        # If client_exit is True, this close was initiated from a
-        # client, either from a context manager going out of scope,
-        # from an exception causing a context manager to go out of
-        # scope, or from someone calling .close().
-        #
+    def _close_inner(self, e: BaseException | None) -> None:
+        if self._closed_event.is_set():
+            return
+
         # For normal closes, when we haven't been given an exception,
         # we then want to ignore any other exceptions that the
         # connection worker threads might have experienced: odds are
         # good that those exceptions are a natural part of the
         # shutdown process.
-        if client_exit and (e is not None):
+        if e is not None:
             # However, for abnormal closes where we have been given an
             # exception, we should try to log exceptions that we've
             # captured from the worker threads.
@@ -411,56 +410,26 @@ class AptConnection(AbstractAptConnection):
                     )
                 except Empty:
                     break
-        elif e is not None:
-            # This is not a top-level close event, but store any
-            # errors just in case the top-level event involves an
-            # exception.
-            self._close_exception_queue.put(e)
-
-        # We only need to go through the actual clean up work once,
-        # but because of the many ways that close can be triggered,
-        # this is not straightforward.
-        if (
-            self._is_closed()
-            and (not self._tx_ordered_sender_thread.is_alive())
-            and (not self._rx_dispatcher_thread.is_alive())
-            and (not self._connection.is_open)
-        ):
-            if client_exit and (e is not None):
-                raise e
-            return
-
-        if not self._closed_event.is_set():
-            self._closed_event.set()
-            atexit.unregister(self.close)
-            self._tx_ordered_sender_queue.shutdown()
-            with self._rx_dispatcher_subscribers_lock:
-                for queue in self._rx_dispatcher_subscribers.values():
-                    queue.shutdown()
-
-        thread_id = threading.get_ident()
-        if thread_id != self._tx_ordered_sender_thread.ident:
-            self._tx_ordered_sender_thread.join()
-        if thread_id != self._rx_dispatcher_thread.ident:
-            self._rx_dispatcher_thread.join()
 
         try:
-            if (
-                self._is_closed()
-                and (not self._tx_ordered_sender_thread.is_alive())
-                and (not self._rx_dispatcher_thread.is_alive())
-            ):
-                with self._rx_lock:
-                    if self._connection.is_open:
-                        self._clean_buffer()
-                        with self._tx_lock:
-                            self._connection.close()
+            self._shutdown_threads()
+            self._tx_ordered_sender_thread.join()
+            self._rx_dispatcher_thread.join()
+
+            if self._connection.is_open:
+                self._clean_buffer()
+                self._connection.close()
         finally:
-            if client_exit and (e is not None):
+            self._closed_event.set()
+            if e is not None:
                 raise e
 
-    def _is_closed(self) -> bool:
-        return (not self._opened_event.is_set()) or self._closed_event.is_set()
+    def _shutdown_threads(self) -> None:
+        self._opened_event.clear()
+        self._tx_ordered_sender_queue.shutdown()
+        with self._rx_dispatcher_subscribers_lock:
+            for queue in self._rx_dispatcher_subscribers.values():
+                queue.shutdown()
 
     # Receive dispatcher thread functions
 
@@ -470,9 +439,8 @@ class AptConnection(AbstractAptConnection):
                 while self._fail_if_closed():
                     self._rx_dispatcher_internal_loop()
         except BaseException as e:  # pylint: disable=W0718
-            self._close(e=e)
-        finally:
-            self._close()
+            self._close_exception_queue.put(e)
+            self._shutdown_threads()
 
     def _rx_dispatcher_internal_loop(self) -> None:
         partial_message: None | AptMessageForStreamParsing = None
@@ -529,9 +497,8 @@ class AptConnection(AbstractAptConnection):
             while self._fail_if_closed():
                 self._tx_ordered_send_internal_loop()
         except BaseException as e:  # pylint: disable=W0718
-            self._close(e=e)
-        finally:
-            self._close()
+            self._close_exception_queue.put(e)
+            self._shutdown_threads()
 
     def _tx_ordered_send_internal_loop(self) -> None:
         item = self._tx_ordered_sender_queue.get()
