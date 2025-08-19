@@ -90,6 +90,11 @@ def test_move_absolute(mock_connection: Mock) -> None:
 
     controller.move_absolute(10 * pnpq_ureg.k10cr1_step)
 
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_MOVE_ABSOLUTE.
+    # (Enabling and disabling the channel doesn't use an expect reply in K10CR1)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
     # Assert the message that is sent when K10CR1 initializes and homes
     first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
     assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_STATUSUPDATE)
@@ -104,11 +109,6 @@ def test_move_absolute(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
 
 
 def test_jog(mock_connection: Mock) -> None:
@@ -142,6 +142,11 @@ def test_jog(mock_connection: Mock) -> None:
 
     controller.jog(jog_direction=JogDirection.FORWARD)
 
+    # First call is to initialize and home.
+    # Second call is for sending AptMessage_MGMSG_MOT_MOVE_JOG.
+    # (Enabling and disabling the channel doesn't use an expect reply in K10CR1)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
     first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
     assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_STATUSUPDATE)
     assert first_call_args[0][0].chan_ident == ChanIdent(1)
@@ -155,11 +160,6 @@ def test_jog(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
 
 
 def test_set_velparams(mock_connection: Mock) -> None:
@@ -197,6 +197,11 @@ def test_set_velparams(mock_connection: Mock) -> None:
         maximum_velocity=3 * pnpq_ureg.k10cr1_velocity,
     )
 
+    # First call is to initialize and home.
+    # Second call is for getting AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in K10CR1)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
     # Assert the message that is sent when K10CR1 initializes and homes
     first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
     assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_STATUSUPDATE)
@@ -204,6 +209,9 @@ def test_set_velparams(mock_connection: Mock) -> None:
     assert first_call_args[0][0].destination == Address.GENERIC_USB
     assert first_call_args[0][0].source == Address.HOST_CONTROLLER
 
+    # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
+    # Second call is for AptMessage_MGMSG_MOT_SET_VELPARAMS.
+    # There may be subsequent calls.
     assert mock_connection.send_message_no_reply.call_count >= 2
 
     # Assert the message that is sent to move the waveplate
@@ -215,11 +223,6 @@ def test_set_velparams(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
 
 
 def test_get_velparams(mock_connection: Mock) -> None:
@@ -260,6 +263,11 @@ def test_get_velparams(mock_connection: Mock) -> None:
         "maximum_velocity": 30 * pnpq_ureg.k10cr1_velocity,
     }
 
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in K10CR1)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
     # Assert the message that is sent when K10CR1 initializes and homes
     first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
     assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_STATUSUPDATE)
@@ -273,11 +281,6 @@ def test_get_velparams(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
 
 
 def test_set_jogparams(mock_connection: Mock) -> None:
@@ -321,6 +324,11 @@ def test_set_jogparams(mock_connection: Mock) -> None:
         jog_stop_mode=StopMode.IMMEDIATE,
     )
 
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_JOGPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in K10CR1)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
     # Assert the message that is sent when K10CR1 initializes and homes
     first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
     assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_STATUSUPDATE)
@@ -328,6 +336,9 @@ def test_set_jogparams(mock_connection: Mock) -> None:
     assert first_call_args[0][0].destination == Address.GENERIC_USB
     assert first_call_args[0][0].source == Address.HOST_CONTROLLER
 
+    # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
+    # Second call is for AptMessage_MGMSG_MOT_SET_JOGPARAMS.
+    # There may be subsequent calls.
     assert mock_connection.send_message_no_reply.call_count >= 2
 
     # Assert the message that is sent to move the waveplate
@@ -341,11 +352,6 @@ def test_set_jogparams(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
 
 
 def test_get_jogparams(mock_connection: Mock) -> None:
@@ -392,6 +398,11 @@ def test_get_jogparams(mock_connection: Mock) -> None:
         "jog_stop_mode": StopMode.CONTROLLED,
     }
 
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_JOGPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in K10CR1)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
     # Assert the message that is sent when K10CR1 initializes and homes
     first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
     assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_STATUSUPDATE)
@@ -405,8 +416,3 @@ def test_get_jogparams(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # One call for moving the motor.
-    # Enabling and disabling the channel doesn't use an expect reply in K10CR1
-    # Second call for getting the status update to check if the device is homed
-    assert mock_connection.send_message_expect_reply.call_count == 2
