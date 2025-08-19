@@ -7,36 +7,33 @@ from pnpq.apt.connection import AptConnection
 from pnpq.apt.protocol import (
     Address,
     AptMessage,
+    AptMessage_MGMSG_MOD_IDENTIFY,
+    AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
+    AptMessage_MGMSG_MOT_GET_JOGPARAMS,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
-    AptMessage_MGMSG_MOT_MOVE_HOMED,
-    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
-    AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_MOVE_JOG,
-    AptMessage_MGMSG_MOT_REQ_VELPARAMS,
-    AptMessage_MGMSG_MOT_GET_VELPARAMS,
-    AptMessage_MGMSG_MOT_SET_VELPARAMS,
     AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
-    AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
-    AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
-    AptMessage_MGMSG_MOT_GET_JOGPARAMS,
+    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_REQ_VELPARAMS,
+    AptMessage_MGMSG_MOT_SET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_SET_JOGPARAMS,
+    AptMessage_MGMSG_MOT_SET_VELPARAMS,
     ChanIdent,
+    HomeDirection,
     JogDirection,
     JogMode,
-    HomeDirection,
     LimitSwitch,
     StopMode,
     UStatus,
 )
 from pnpq.devices.odl_thorlabs_kbd101 import (
     OpticalDelayLineThorlabsKBD101,
-    OpticalDelayLineVelocityParams,
-    OpticalDelayLineHomeParams,
-    OpticalDelayLineJogParams,
 )
 from pnpq.units import pnpq_ureg
 
@@ -51,16 +48,15 @@ def mock_connection_fixture() -> Mock:
     return connection
 
 
-def make_ustatus(homed: bool = True) -> AptMessage_MGMSG_MOT_GET_USTATUSUPDATE:
-    return AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
-        chan_ident=ChanIdent(1),
-        destination=Address.HOST_CONTROLLER,
-        source=Address.GENERIC_USB,
-        velocity=0,
-        position=0,
-        motor_current=0 * pnpq_ureg.milliamp,
-        status=UStatus(INMOTIONCCW=False, INMOTIONCW=False, HOMED=homed),
-    )
+ustatus_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
+    chan_ident=ChanIdent(1),
+    destination=Address.HOST_CONTROLLER,
+    source=Address.GENERIC_USB,
+    velocity=0,
+    position=0,
+    motor_current=0 * pnpq_ureg.milliamp,
+    status=UStatus(INMOTIONCCW=False, INMOTIONCW=False, HOMED=True),
+)
 
 
 def test_identify(mock_connection: Mock) -> None:
@@ -86,51 +82,59 @@ def test_identify(mock_connection: Mock) -> None:
     assert first_call_args[0][0].source == Address.HOST_CONTROLLER
 
 
-
 def test_home(mock_connection: Mock) -> None:
-    ustatus = make_ustatus(homed=True)
 
-    def expect_reply(sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]):
+    def mock_send_message_expect_reply(
+        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
+    ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
-            return ustatus
+            return ustatus_message
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_HOME):
             reply = AptMessage_MGMSG_MOT_MOVE_HOMED(
                 chan_ident=sent_message.chan_ident,
                 destination=Address.HOST_CONTROLLER,
                 source=Address.GENERIC_USB,
-
             )
             assert match_reply_callback(reply)
             return reply
-        return None
+        raise ValueError(f"Unexpected message type: {type(sent_message)}. ")
 
-    mock_connection.send_message_expect_reply.side_effect = expect_reply
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
 
     odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     odl.home()
 
-    # # First call is to initialize and home.
+    # First call is to initialize and home.
     # Second call is for AptMessage_MGMSG_MOT_MOVE_HOME.
     # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
     assert mock_connection.send_message_expect_reply.call_count == 2
 
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+    # Assert the message that is sent to move the ODL
+    second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_MOVE_HOME)
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
 
 def test_move_absolute(mock_connection: Mock) -> None:
-    ustatus_message = make_ustatus(homed=True)
 
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
-    ) -> AptMessage | None:
+    ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
             return ustatus_message
 
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_ABSOLUTE):
-            # controller should convert the Quantity to a numeric payload
-            assert sent_message.chan_ident == ChanIdent(1)
-            # calling move_absolute(1000 * kbd101_position) -> payload 1000
-            assert sent_message.absolute_distance == 1000
-
             reply_message = AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
                 chan_ident=sent_message.chan_ident,
                 position=sent_message.absolute_distance,
@@ -143,27 +147,44 @@ def test_move_absolute(mock_connection: Mock) -> None:
 
             assert match_reply_callback(reply_message)
             return reply_message
-        return None
+        raise ValueError(f"Unexpected message type: {type(sent_message)}. ")
 
-    mock_connection.send_message_expect_reply.side_effect = mock_send_message_expect_reply
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
 
     controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     controller.move_absolute(1000 * pnpq_ureg.kbd101_position)
 
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_MOVE_ABSOLUTE.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
     first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
     assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
 
+    # Assert the message that is sent to move the ODL
     second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
     assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_MOVE_ABSOLUTE)
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
     assert second_call_args[0][0].absolute_distance == 1000
-    assert mock_connection.send_message_expect_reply.call_count == 2
 
 
 def test_jog(mock_connection: Mock) -> None:
-    def expect_reply(sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]):
+    def mock_send_message_expect_reply(
+        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
+    ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
-            return make_ustatus(homed=True)
-        if isinstance(sent_message, AptMessage_MGMSG_MOT_JOG):
+            return ustatus_message
+
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_JOG):
             reply = AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
                 chan_ident=sent_message.chan_ident,
                 position=0,
@@ -175,19 +196,42 @@ def test_jog(mock_connection: Mock) -> None:
             )
             assert match_reply_callback(reply)
             return reply
-        return None
+        raise ValueError(f"Unexpected message type: {type(sent_message)}. ")
 
-    mock_connection.send_message_expect_reply.side_effect = expect_reply
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
 
     odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     odl.jog(JogDirection.FORWARD)
 
-    # at least one expect-reply for jog
-    assert any(isinstance(call[0][0], AptMessage_MGMSG_MOT_JOG) for call in mock_connection.send_message_expect_reply.call_args_list)
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_MOVE_ABSOLUTE.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+    # Assert the message that is sent to move the ODL
+    second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_MOVE_JOG)
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert second_call_args[0][0].jog_direction == JogDirection.FORWARD
 
 
 def test_get_velparams(mock_connection: Mock) -> None:
-    def expect_reply(sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]):
+    def mock_send_message_expect_reply(
+        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
+    ) -> AptMessage:
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
+            return ustatus_message
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_VELPARAMS):
             reply = AptMessage_MGMSG_MOT_GET_VELPARAMS(
                 chan_ident=sent_message.chan_ident,
@@ -199,136 +243,397 @@ def test_get_velparams(mock_connection: Mock) -> None:
             )
             assert match_reply_callback(reply)
             return reply
-        return None
+        raise ValueError(f"Unexpected message type: {type(sent_message)}. ")
 
-    mock_connection.send_message_expect_reply.side_effect = expect_reply
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
 
     odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     velparams = odl.get_velparams()
 
-    assert isinstance(velparams, OpticalDelayLineVelocityParams)
-    assert velparams["minimum_velocity"].to("kbd101_velocity").magnitude == 1
-    assert velparams["acceleration"].to("kbd101_acceleration").magnitude == 2
-    assert velparams["maximum_velocity"].to("kbd101_velocity").magnitude == 3
+    assert velparams == {
+        "minimum_velocity": 1 * pnpq_ureg.kbd101_velocity,
+        "acceleration": 2 * pnpq_ureg.kbd101_acceleration,
+        "maximum_velocity": 3 * pnpq_ureg.kbd101_velocity,
+    }
+
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+    # Assert the message that is sent to move the ODL
+    second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_REQ_VELPARAMS)
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
 
 def test_set_velparams(mock_connection: Mock) -> None:
-    def send_no_reply(sent_message: AptMessage) -> None:
-        assert isinstance(sent_message, AptMessage_MGMSG_MOT_SET_VELPARAMS)
-        assert sent_message.chan_ident == ChanIdent(1)
-        assert sent_message.destination == Address.GENERIC_USB
-        assert sent_message.source == Address.HOST_CONTROLLER
+    def mock_send_message_expect_reply(
+        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
+    ) -> AptMessage:
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
+            return ustatus_message
 
-    mock_connection.send_message_no_reply.side_effect = send_no_reply
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_VELPARAMS):
 
-    odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
-    odl.set_velparams(
-        minimum_velocity=0 * pnpq_ureg.kbd101_velocity,
-        acceleration=5 * pnpq_ureg.kbd101_acceleration,
-        maximum_velocity=10 * pnpq_ureg.kbd101_velocity,
+            # A hypothetical reply message from the device
+            reply_message = AptMessage_MGMSG_MOT_GET_VELPARAMS(
+                destination=Address.HOST_CONTROLLER,
+                source=Address.GENERIC_USB,
+                chan_ident=ChanIdent(1),
+                minimum_velocity=10,
+                acceleration=20,
+                maximum_velocity=30,
+            )
+
+            assert match_reply_callback(reply_message)
+            return reply_message
+        raise ValueError(f"Unexpected message type sent: {type(sent_message)}")
+
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
     )
 
-    assert mock_connection.send_message_no_reply.call_count == 1
+    controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
+
+    controller.set_velparams(
+        minimum_velocity=1 * pnpq_ureg.kbd101_velocity,
+        acceleration=2 * pnpq_ureg.kbd101_acceleration,
+        maximum_velocity=3 * pnpq_ureg.kbd101_velocity,
+    )
+
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+    # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
+    # Second call is for AptMessage_MGMSG_MOT_SET_VELPARAMS.
+    # There may be subsequent calls.
+    assert mock_connection.send_message_no_reply.call_count >= 2
+
+    # Assert the message that is sent to move the ODL
+    second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_SET_VELPARAMS)
+    assert second_call_args[0][0].minimum_velocity == 1
+    assert second_call_args[0][0].acceleration == 2
+    assert second_call_args[0][0].maximum_velocity == 3
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
 
 def test_get_homeparams(mock_connection: Mock) -> None:
-    def expect_reply(sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]):
+    def mock_send_message_expect_reply(
+        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
+    ) -> AptMessage:
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
+            return ustatus_message
+
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_HOMEPARAMS):
-            reply = AptMessage_MGMSG_MOT_GET_HOMEPARAMS(
-                chan_ident=sent_message.chan_ident,
+
+            # A hypothetical reply message from the device
+            reply_message = AptMessage_MGMSG_MOT_GET_HOMEPARAMS(
                 destination=Address.HOST_CONTROLLER,
                 source=Address.GENERIC_USB,
+                chan_ident=ChanIdent(1),
                 home_direction=HomeDirection.FORWARD,
                 limit_switch=LimitSwitch.HARDWARE_FORWARD,
-                home_velocity=100,
-                offset_distance=0,
+                home_velocity=1 * pnpq_ureg.kbd101_velocity,
+                offset_distance=2 * pnpq_ureg.kbd101_position,
             )
-            assert match_reply_callback(reply)
-            return reply
-        return None
 
-    mock_connection.send_message_expect_reply.side_effect = expect_reply
+            assert match_reply_callback(reply_message)
+            return reply_message
+        raise ValueError(f"Unexpected message type sent: {type(sent_message)}")
 
-    odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
-    homeparams = odl.get_homeparams()
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
 
-    assert isinstance(homeparams, OpticalDelayLineHomeParams)
-    assert homeparams["home_velocity"].to("kbd101_velocity").magnitude == 100
+    controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
+
+    params = controller.get_homeparams()
+    assert params == {
+        "home_direction": HomeDirection.FORWARD,
+        "limit_switch": LimitSwitch.HARDWARE_FORWARD,
+        "home_velocity": 1 * pnpq_ureg.kbd101_velocity,
+        "offset_distance": 2 * pnpq_ureg.kbd101_position,
+    }
+
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+    # Assert the message that is sent to move the ODL
+    second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_REQ_HOMEPARAMS)
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
 
 def test_set_homeparams(mock_connection: Mock) -> None:
-    def send_no_reply(sent_message: AptMessage) -> None:
-        assert isinstance(sent_message, AptMessage_MGMSG_MOT_SET_HOMEPARAMS)
-        assert sent_message.chan_ident == ChanIdent(1)
+    def mock_send_message_expect_reply(
+        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
+    ) -> AptMessage:
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
+            return ustatus_message
 
-    mock_connection.send_message_no_reply.side_effect = send_no_reply
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_HOMEPARAMS):
 
-    odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
-    odl.set_homeparams(
-        home_direction=HomeDirection.FORWARD,
-        limit_switch=LimitSwitch.HARDWARE_FORWARD,
-        home_velocity=200 * pnpq_ureg.kbd101_velocity,
-        offset_distance=0 * pnpq_ureg.kbd101_position,
-    )
-
-    assert mock_connection.send_message_no_reply.call_count == 1
-
-
-def test_get_jogparams(mock_connection: Mock) -> None:
-    def expect_reply(sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]):
-        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_JOGPARAMS):
-            reply = AptMessage_MGMSG_MOT_GET_JOGPARAMS(
-                chan_ident=sent_message.chan_ident,
+            # A hypothetical reply message from the device
+            reply_message = AptMessage_MGMSG_MOT_GET_HOMEPARAMS(
                 destination=Address.HOST_CONTROLLER,
                 source=Address.GENERIC_USB,
-                jog_mode=JogMode.SINGLE_STEP,
-                jog_step_size=20000,
-                jog_minimum_velocity=1000,
-                jog_acceleration=7,
-                jog_maximum_velocity=1000,
-                jog_stop_mode=StopMode.CONTROLLED,
+                chan_ident=ChanIdent(1),
+                home_direction=HomeDirection.FORWARD,
+                limit_switch=LimitSwitch.HARDWARE_FORWARD,
+                home_velocity=10 * pnpq_ureg.kbd101_velocity,
+                offset_distance=20 * pnpq_ureg.kbd101_position,
             )
-            assert match_reply_callback(reply)
-            return reply
-        return None
 
-    mock_connection.send_message_expect_reply.side_effect = expect_reply
+            assert match_reply_callback(reply_message)
+            return reply_message
+        raise ValueError(f"Unexpected message type sent: {type(sent_message)}")
 
-    odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
-    jogparams = odl.get_jogparams()
-    assert isinstance(jogparams, OpticalDelayLineJogParams)
-    assert jogparams["jog_step_size"].to("kbd101_position").magnitude == 20000
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
+
+    controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
+
+    controller.set_homeparams(
+        home_direction=HomeDirection.FORWARD,
+        limit_switch=LimitSwitch.HARDWARE_FORWARD,
+        home_velocity=1 * pnpq_ureg.kbd101_velocity,
+        offset_distance=2 * pnpq_ureg.kbd101_position,
+    )
+
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+    # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
+    # Second call is for AptMessage_MGMSG_MOT_SET_VELPARAMS.
+    # There may be subsequent calls.
+    assert mock_connection.send_message_no_reply.call_count >= 2
+
+    # Assert the message that is sent to move the ODL
+    second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_SET_HOMEPARAMS)
+    assert second_call_args[0][0].home_direction == HomeDirection.FORWARD
+    assert second_call_args[0][0].limit_switch == LimitSwitch.HARDWARE_FORWARD
+    assert second_call_args[0][0].home_velocity == 1
+    assert second_call_args[0][0].offset_distance == 2
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
 
 def test_set_jogparams(mock_connection: Mock) -> None:
-    def send_no_reply(sent_message: AptMessage) -> None:
-        assert isinstance(sent_message, AptMessage_MGMSG_MOT_SET_JOGPARAMS)
-        assert sent_message.chan_ident == ChanIdent(1)
+    def mock_send_message_expect_reply(
+        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
+    ) -> AptMessage:
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
+            return ustatus_message
 
-    mock_connection.send_message_no_reply.side_effect = send_no_reply
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_JOGPARAMS):
 
-    odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
-    odl.set_jogparams(
-        jog_mode=JogMode.SINGLE_STEP,
-        jog_step_size=20000 * pnpq_ureg.kbd101_position,
-        jog_minimum_velocity=1000 * pnpq_ureg.kbd101_velocity,
-        jog_acceleration=7 * pnpq_ureg.kbd101_acceleration,
-        jog_maximum_velocity=1000 * pnpq_ureg.kbd101_velocity,
+            # A hypothetical reply message from the device
+            reply_message = AptMessage_MGMSG_MOT_GET_JOGPARAMS(
+                destination=Address.HOST_CONTROLLER,
+                source=Address.GENERIC_USB,
+                chan_ident=ChanIdent(1),
+                jog_mode=JogMode.CONTINUOUS,
+                jog_step_size=10,
+                jog_minimum_velocity=20,
+                jog_acceleration=30,
+                jog_maximum_velocity=40,
+                jog_stop_mode=StopMode.CONTROLLED,
+            )
+
+            assert match_reply_callback(reply_message)
+            return reply_message
+        raise ValueError(f"Unexpected message type sent: {type(sent_message)}")
+
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
+
+    controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
+
+    controller.set_jogparams(
+        jog_mode=JogMode.CONTINUOUS,
+        jog_step_size=1 * pnpq_ureg.kbd101_position,
+        jog_minimum_velocity=2 * pnpq_ureg.kbd101_velocity,
+        jog_acceleration=3 * pnpq_ureg.kbd101_acceleration,
+        jog_maximum_velocity=4 * pnpq_ureg.kbd101_velocity,
         jog_stop_mode=StopMode.CONTROLLED,
     )
 
-    assert mock_connection.send_message_no_reply.call_count == 1
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+    # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
+    # Second call is for AptMessage_MGMSG_MOT_SET_VELPARAMS.
+    # There may be subsequent calls.
+    assert mock_connection.send_message_no_reply.call_count >= 2
+
+    # Assert the message that is sent to move the ODL
+    second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_SET_JOGPARAMS)
+    assert second_call_args[0][0].jog_mode == JogMode.CONTINUOUS
+    assert second_call_args[0][0].jog_step_size == 1
+    assert second_call_args[0][0].jog_minimum_velocity == 2
+    assert second_call_args[0][0].jog_acceleration == 3
+    assert second_call_args[0][0].jog_maximum_velocity == 4
+    assert second_call_args[0][0].jog_stop_mode == StopMode.CONTROLLED
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
+
+
+def test_get_jogparams(mock_connection: Mock) -> None:
+    def mock_send_message_expect_reply(
+        sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
+    ) -> AptMessage:
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
+            return ustatus_message
+
+        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_JOGPARAMS):
+
+            # A hypothetical reply message from the device
+            reply_message = AptMessage_MGMSG_MOT_GET_JOGPARAMS(
+                destination=Address.HOST_CONTROLLER,
+                source=Address.GENERIC_USB,
+                chan_ident=ChanIdent(1),
+                jog_mode=JogMode.CONTINUOUS,
+                jog_step_size=10,
+                jog_minimum_velocity=20,
+                jog_acceleration=30,
+                jog_maximum_velocity=40,
+                jog_stop_mode=StopMode.CONTROLLED,
+            )
+
+            assert match_reply_callback(reply_message)
+            return reply_message
+        raise ValueError(f"Unexpected message type sent: {type(sent_message)}")
+
+    mock_connection.send_message_expect_reply.side_effect = (
+        mock_send_message_expect_reply
+    )
+
+    controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
+
+    params = controller.get_jogparams()
+    assert params == {
+        "jog_mode": JogMode.CONTINUOUS,
+        "jog_step_size": 10 * pnpq_ureg.kbd101_position,
+        "jog_minimum_velocity": 20 * pnpq_ureg.kbd101_velocity,
+        "jog_acceleration": 30 * pnpq_ureg.kbd101_acceleration,
+        "jog_maximum_velocity": 40 * pnpq_ureg.kbd101_velocity,
+        "jog_stop_mode": StopMode.CONTROLLED,
+    }
+
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+    # Assert the message that is sent to move the ODL
+    second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_REQ_JOGPARAMS)
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
 
 def test_get_status(mock_connection: Mock) -> None:
-    def expect_reply(sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]):
-        if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE):
-            return make_ustatus(homed=True)
-        return None
+    custom_ustatus_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
+        chan_ident=ChanIdent(1),
+        destination=Address.HOST_CONTROLLER,
+        source=Address.GENERIC_USB,
+        velocity=1,
+        position=2,
+        motor_current=3 * pnpq_ureg.milliamp,
+        status=UStatus(INMOTIONCCW=True, INMOTIONCW=True, HOMED=False),
+    )
 
-    mock_connection.send_message_expect_reply.side_effect = expect_reply
+    mock_connection.send_message_expect_reply.side_effect = (
+        ustatus_message,
+        custom_ustatus_message,
+    )
 
-    odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
-    status_msg = odl.get_status()
-    assert isinstance(status_msg, AptMessage_MGMSG_MOT_GET_USTATUSUPDATE)
+    controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
 
+    params: AptMessage_MGMSG_MOT_GET_USTATUSUPDATE = controller.get_status()
+    assert params.chan_ident == ChanIdent(1)
+    assert params.destination == Address.HOST_CONTROLLER
+    assert params.source == Address.GENERIC_USB
+    assert params.velocity == 1
+    assert params.position == 2
+    assert params.motor_current == 3 * pnpq_ureg.milliamp
+    assert params.status == UStatus(INMOTIONCCW=True, INMOTIONCW=True, HOMED=False)
+
+    # First call is to initialize and home.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
+    assert mock_connection.send_message_expect_reply.call_count == 2
+
+    # Assert the message that is sent when KBD101 initializes and homes
+    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert first_call_args[0][0].chan_ident == ChanIdent(1)
+    assert first_call_args[0][0].destination == Address.GENERIC_USB
+    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
