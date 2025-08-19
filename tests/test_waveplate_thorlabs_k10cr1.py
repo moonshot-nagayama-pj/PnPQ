@@ -52,7 +52,7 @@ def mock_connection_fixture() -> Mock:
     return connection
 
 
-def test_move_absolute(mock_connection: Any) -> None:
+def test_move_absolute(mock_connection: Mock) -> None:
 
     def mock_send_message_expect_reply(
         sent_message: AptMessage,
@@ -111,7 +111,7 @@ def test_move_absolute(mock_connection: Any) -> None:
     assert mock_connection.send_message_expect_reply.call_count == 2
 
 
-def test_jog(mock_connection: Any) -> None:
+def test_jog(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage | None:
@@ -162,7 +162,7 @@ def test_jog(mock_connection: Any) -> None:
     assert mock_connection.send_message_expect_reply.call_count == 2
 
 
-def test_set_velparams(mock_connection: Any) -> None:
+def test_set_velparams(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage:
@@ -220,7 +220,7 @@ def test_set_velparams(mock_connection: Any) -> None:
     assert mock_connection.send_message_expect_reply.call_count == 2
 
 
-def test_get_velparams(mock_connection: Any) -> None:
+def test_get_velparams(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage:
@@ -278,7 +278,7 @@ def test_get_velparams(mock_connection: Any) -> None:
     assert mock_connection.send_message_expect_reply.call_count == 2
 
 
-def test_set_jogparams(mock_connection: Any) -> None:
+def test_set_jogparams(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage | None:
@@ -345,7 +345,7 @@ def test_set_jogparams(mock_connection: Any) -> None:
     assert mock_connection.send_message_expect_reply.call_count == 2
 
 
-def test_get_jogparams(mock_connection: Any) -> None:
+def test_get_jogparams(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage | None:
