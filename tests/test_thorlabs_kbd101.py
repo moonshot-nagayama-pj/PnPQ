@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Generator
 from unittest.mock import Mock, create_autospec
 
 import pytest
@@ -35,17 +35,24 @@ from pnpq.apt.protocol import (
 from pnpq.devices.odl_thorlabs_kbd101 import (
     OpticalDelayLineThorlabsKBD101,
 )
+from pnpq.errors import InvalidStateException
 from pnpq.units import pnpq_ureg
 
 
 @pytest.fixture(name="mock_connection", scope="function")
-def mock_connection_fixture() -> Mock:
+def mock_connection_fixture() -> Generator[Mock, None, None]:
     connection = create_autospec(AptConnection)
     connection.stop_event = Mock()
     connection.tx_ordered_sender_awaiting_reply = Mock()
     connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
     assert isinstance(connection, Mock)
-    return connection
+    yield connection
+
+    # Shut down the polling thread
+    def mock_send_message_unordered(message: AptMessage) -> None:
+        raise InvalidStateException("Tried to use a closed AptConnection object.")
+
+    connection.send_message_unordered.side_effect = mock_send_message_unordered
 
 
 ustatus_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
