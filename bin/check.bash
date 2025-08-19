@@ -66,6 +66,9 @@ ruff check .
 stdmsg "Building documentation..."
 sphinx-build -M html sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all
 
+stdmsg "Validating the CFF file..."
+cffconvert --validate
+
 stdmsg "Running unit tests..."
 coverage run -m pytest tests
 coverage report -m

@@ -258,12 +258,28 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             # Home the device on startup
             self.log.info("[Waveplate] Device is not homed, homing on setup.")
 
-            # Set home velocity to 500 times the default amount
-            # because the default amount is really slow
-            self.set_homeparams(
-                home_velocity=73291 * pnpq_ureg.k10cr1_velocity * 500,
+            # Set device parameters to the same values that the
+            # official application does. The home parameter values
+            # seem to be lost on poweroff; others may be as well.
+            self.set_velparams(
+                acceleration=15020 * pnpq_ureg.k10cr1_acceleration,
+                maximum_velocity=73300775 * pnpq_ureg.k10cr1_velocity,
+                minimum_velocity=0 * pnpq_ureg.k10cr1_velocity,
             )
-            time.sleep(1)
+            self.set_jogparams(
+                jog_acceleration=22530 * pnpq_ureg.k10cr1_acceleration,
+                jog_maximum_velocity=109951163 * pnpq_ureg.k10cr1_velocity,
+                jog_minimum_velocity=0 * pnpq_ureg.k10cr1_velocity,
+                jog_mode=JogMode.SINGLE_STEP,
+                jog_step_size=682667 * pnpq_ureg.k10cr1_step,
+                jog_stop_mode=StopMode.CONTROLLED,
+            )
+            self.set_homeparams(
+                home_direction=HomeDirection.REVERSE,
+                limit_switch=LimitSwitch.HARDWARE_REVERSE,
+                home_velocity=73300775 * pnpq_ureg.k10cr1_velocity,
+                offset_distance=546133 * pnpq_ureg.k10cr1_step,
+            )
             self.home()
 
         else:
@@ -375,6 +391,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 .magnitude,
             )
         )
+        time.sleep(1)
 
     def get_jogparams(self) -> WaveplateJogParams:
         params = self.connection.send_message_expect_reply(
@@ -450,6 +467,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             )
         )
         self.log.debug("set_jogparams", params=params)
+        time.sleep(1)
 
     def get_homeparams(self) -> WaveplateHomeParams:
         params = self.connection.send_message_expect_reply(
@@ -507,6 +525,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 .magnitude,
             )
         )
+        time.sleep(1)
 
     def home(self) -> None:
         self.set_channel_enabled(True)

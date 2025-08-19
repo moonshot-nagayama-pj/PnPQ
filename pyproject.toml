@@ -1,21 +1,47 @@
 [project]
 name = "pnpq"
 version = "0.1.0.dev"
-description = "PnPQ is a python library package for controlling optical devices in quantum networks"
-authors = [
-    { name = "Amin Taherkhani", email = "amin@sfc.wide.ad.jp" },
-    { name = "Andrew Todd", email = "at@auspicacious.org" },
-    { name = "Tom Shen", email = "tomshen@keio.jp" },
-    { name = "Lars Matsumiya", email = "larsmatsumiya@gmail.com" },
-]
 dependencies = [
     "pyserial>=3.5",
     "types-pyserial>=3.5.0.20240826",
     "pint>=0.24.3",
     "structlog>=24.4.0",
 ]
-readme = "README.md"
 requires-python = ">= 3.13"
+authors = [
+    { name = "Amin Taherkhani", email = "amin@sfc.wide.ad.jp" },
+    { name = "Andrew Todd", email = "at@auspicacious.org" },
+    { name = "Lars Matsumiya", email = "larsmatsumiya@gmail.com" },
+    { name = "Tom Shen", email = "tomshen@keio.jp" },
+]
+description = "Python library for laboratory devices often used in quantum networking and computing testbeds."
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE.md"]
+keywords = ["optics", "ozoptics", "physics", "quantum", "thorlabs"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Quantum Computing",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
+
+[project.urls]
+homepage = "https://github.com/moonshot-nagayama-pj/PnPQ"
+source = "https://github.com/moonshot-nagayama-pj/PnPQ"
+changelog = "https://github.com/moonshot-nagayama-pj/PnPQ/releases"
+releasenotes = "https://github.com/moonshot-nagayama-pj/PnPQ/releases"
+documentation = "https://moonshot-nagayama-pj.github.io/PnPQ/"
+issues = "https://github.com/moonshot-nagayama-pj/PnPQ/issues"
 
 [build-system]
 requires = ["hatchling"]
@@ -24,6 +50,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "black>=24.8.0",
+    "cffconvert>=2.0.0",
     "coverage>=7.6.1",
     "isort>=5.13.2",
     "mypy>=1.11.2",
