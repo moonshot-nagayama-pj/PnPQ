@@ -348,44 +348,28 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
 
     def get_velparams(self) -> WaveplateVelocityParams:
 
-        sent_msg = AptMessage_MGMSG_MOT_REQ_VELPARAMS(
+        params = self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_REQ_VELPARAMS(
                 chan_ident=self._chan_ident,
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
             ),
-
-        reply_callback = lambda message: (
-            isinstance(message, AptMessage_MGMSG_MOT_REQ_VELPARAMS)
-            and message.chan_ident == self._chan_ident
-            and message.destination == Address.HOST_CONTROLLER
-            and message.source == Address.GENERIC_USB
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_VELPARAMS)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
         )
 
-        self.log.info("Requesting velocity parameters...", msg=self.connection.send_message_expect_reply(1, 2))
-        # params = self.connection.send_message_expect_reply(
-        #     AptMessage_MGMSG_MOT_REQ_VELPARAMS(
-        #         chan_ident=self._chan_ident,
-        #         destination=Address.GENERIC_USB,
-        #         source=Address.HOST_CONTROLLER,
-        #     ),
-        #     lambda message: (
-        #         isinstance(message, AptMessage_MGMSG_MOT_GET_VELPARAMS)
-        #         and message.chan_ident == self._chan_ident
-        #         and message.destination == Address.HOST_CONTROLLER
-        #         and message.source == Address.GENERIC_USB
-        #     ),
-        # )
+        assert isinstance(params, AptMessage_MGMSG_MOT_GET_VELPARAMS)
 
-        # assert isinstance(params, AptMessage_MGMSG_MOT_GET_VELPARAMS)
+        result = WaveplateVelocityParams()
+        result["minimum_velocity"] = params.minimum_velocity * pnpq_ureg.k10cr1_velocity
+        result["acceleration"] = params.acceleration * pnpq_ureg.k10cr1_acceleration
+        result["maximum_velocity"] = params.maximum_velocity * pnpq_ureg.k10cr1_velocity
 
-        # result = WaveplateVelocityParams()
-        # result["minimum_velocity"] = params.minimum_velocity * pnpq_ureg.k10cr1_velocity
-        # result["acceleration"] = params.acceleration * pnpq_ureg.k10cr1_acceleration
-        # result["maximum_velocity"] = params.maximum_velocity * pnpq_ureg.k10cr1_velocity
-
-        # return result
-
-        return 65432
+        return result
 
     def set_velparams(
         self,

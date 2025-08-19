@@ -340,9 +340,6 @@ class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMP
 
     def get_params(self) -> PolarizationControllerParams:
 
-        self.log.info("self.connection.send_message_expect_reply",
-                      message=self.connection.send_message_expect_reply)
-
         params = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_POL_REQ_PARAMS(
                 destination=Address.GENERIC_USB,
