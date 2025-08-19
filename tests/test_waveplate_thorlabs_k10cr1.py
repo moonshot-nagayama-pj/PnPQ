@@ -204,6 +204,8 @@ def test_set_velparams(mock_connection: Mock) -> None:
     assert first_call_args[0][0].destination == Address.GENERIC_USB
     assert first_call_args[0][0].source == Address.HOST_CONTROLLER
 
+    assert mock_connection.send_message_no_reply.call_count >= 2
+
     # Assert the message that is sent to move the waveplate
     second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
     assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_SET_VELPARAMS)
@@ -281,7 +283,7 @@ def test_get_velparams(mock_connection: Mock) -> None:
 def test_set_jogparams(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
-    ) -> AptMessage | None:
+    ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
             return ustatus_message
 
@@ -302,8 +304,7 @@ def test_set_jogparams(mock_connection: Mock) -> None:
 
             assert match_reply_callback(reply_message)
             return reply_message
-        # TODO: raise error?
-        return None
+        raise ValueError(f"Unexpected message type sent: {type(sent_message)}")
 
     mock_connection.send_message_expect_reply.side_effect = (
         mock_send_message_expect_reply
@@ -327,6 +328,8 @@ def test_set_jogparams(mock_connection: Mock) -> None:
     assert first_call_args[0][0].destination == Address.GENERIC_USB
     assert first_call_args[0][0].source == Address.HOST_CONTROLLER
 
+    assert mock_connection.send_message_no_reply.call_count >= 2
+
     # Assert the message that is sent to move the waveplate
     second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
     assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_SET_JOGPARAMS)
@@ -348,7 +351,7 @@ def test_set_jogparams(mock_connection: Mock) -> None:
 def test_get_jogparams(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
-    ) -> AptMessage | None:
+    ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
             return ustatus_message
 
@@ -370,8 +373,7 @@ def test_get_jogparams(mock_connection: Mock) -> None:
             assert match_reply_callback(reply_message)
             return reply_message
 
-        # TODO: raise error?
-        return None
+        raise ValueError(f"Unexpected message type sent: {type(sent_message)}")
 
     mock_connection.send_message_expect_reply.side_effect = (
         mock_send_message_expect_reply
