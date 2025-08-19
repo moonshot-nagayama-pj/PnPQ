@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Generator
 from unittest.mock import Mock, create_autospec
 
 import pytest
@@ -44,13 +44,19 @@ ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
 
 
 @pytest.fixture(name="mock_connection", scope="function")
-def mock_connection_fixture() -> Mock:
+def mock_connection_fixture() -> Generator[Mock]:
     connection = create_autospec(AptConnection)
     connection.stop_event = Mock()
     connection.tx_ordered_sender_awaiting_reply = Mock()
     connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
     assert isinstance(connection, Mock)
-    return connection
+    yield connection
+
+    # Shut down the polling thread
+    def mock_send_message_unordered(message: AptMessage) -> None:
+        raise InvalidStateException("Tried to use a closed AptConnection object.")
+
+    connection.send_message_unordered.side_effect = mock_send_message_unordered
 
 
 def test_move_absolute(mock_connection: Mock) -> None:
@@ -111,12 +117,6 @@ def test_move_absolute(mock_connection: Mock) -> None:
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
-    # Shut down the polling thread
-    def mock_send_message_unordered(message: AptMessage) -> None:
-        raise InvalidStateException("Tried to use a closed AptConnection object.")
-
-    mock_connection.send_message_unordered.side_effect = mock_send_message_unordered
-
 
 def test_jog(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
@@ -167,12 +167,6 @@ def test_jog(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # Shut down the polling thread
-    def mock_send_message_unordered(message: AptMessage) -> None:
-        raise InvalidStateException("Tried to use a closed AptConnection object.")
-
-    mock_connection.send_message_unordered.side_effect = mock_send_message_unordered
 
 
 def test_set_velparams(mock_connection: Mock) -> None:
@@ -237,12 +231,6 @@ def test_set_velparams(mock_connection: Mock) -> None:
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
-    # Shut down the polling thread
-    def mock_send_message_unordered(message: AptMessage) -> None:
-        raise InvalidStateException("Tried to use a closed AptConnection object.")
-
-    mock_connection.send_message_unordered.side_effect = mock_send_message_unordered
-
 
 def test_get_velparams(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
@@ -300,12 +288,6 @@ def test_get_velparams(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # Shut down the polling thread
-    def mock_send_message_unordered(message: AptMessage) -> None:
-        raise InvalidStateException("Tried to use a closed AptConnection object.")
-
-    mock_connection.send_message_unordered.side_effect = mock_send_message_unordered
 
 
 def test_set_jogparams(mock_connection: Mock) -> None:
@@ -378,12 +360,6 @@ def test_set_jogparams(mock_connection: Mock) -> None:
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
-    # Shut down the polling thread
-    def mock_send_message_unordered(message: AptMessage) -> None:
-        raise InvalidStateException("Tried to use a closed AptConnection object.")
-
-    mock_connection.send_message_unordered.side_effect = mock_send_message_unordered
-
 
 def test_get_jogparams(mock_connection: Mock) -> None:
     def mock_send_message_expect_reply(
@@ -447,9 +423,3 @@ def test_get_jogparams(mock_connection: Mock) -> None:
     assert second_call_args[0][0].chan_ident == ChanIdent(1)
     assert second_call_args[0][0].destination == Address.GENERIC_USB
     assert second_call_args[0][0].source == Address.HOST_CONTROLLER
-
-    # Shut down the polling thread
-    def mock_send_message_unordered(message: AptMessage) -> None:
-        raise InvalidStateException("Tried to use a closed AptConnection object.")
-
-    mock_connection.send_message_unordered.side_effect = mock_send_message_unordered
