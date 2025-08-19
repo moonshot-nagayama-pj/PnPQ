@@ -198,7 +198,7 @@ def test_set_velparams(mock_connection: Mock) -> None:
     )
 
     # First call is to initialize and home.
-    # Second call is for getting AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
     # (Enabling and disabling the channel doesn't use an expect reply in K10CR1)
     assert mock_connection.send_message_expect_reply.call_count == 2
 
