@@ -361,7 +361,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 and message.source == Address.GENERIC_USB
             ),
         )
-
         assert isinstance(params, AptMessage_MGMSG_MOT_GET_VELPARAMS)
 
         result = WaveplateVelocityParams()
@@ -570,7 +569,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 and message.source == Address.GENERIC_USB
             ),
         )
-
         self.set_channel_enabled(False)
 
     def is_homed(self) -> bool:
