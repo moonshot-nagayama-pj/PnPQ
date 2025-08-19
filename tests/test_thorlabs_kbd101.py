@@ -206,7 +206,7 @@ def test_jog(mock_connection: Mock) -> None:
     odl.jog(JogDirection.FORWARD)
 
     # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_MOVE_ABSOLUTE.
+    # Second call is for AptMessage_MGMSG_MOT_MOVE_JOG.
     # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
     assert mock_connection.send_message_expect_reply.call_count == 2
 
@@ -380,7 +380,7 @@ def test_get_homeparams(mock_connection: Mock) -> None:
     }
 
     # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_HOMEPARAMS.
     # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
     assert mock_connection.send_message_expect_reply.call_count == 2
 
@@ -437,7 +437,7 @@ def test_set_homeparams(mock_connection: Mock) -> None:
     )
 
     # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_HOMEPARAMS.
     # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
     assert mock_connection.send_message_expect_reply.call_count == 2
 
@@ -449,7 +449,7 @@ def test_set_homeparams(mock_connection: Mock) -> None:
     assert first_call_args[0][0].source == Address.HOST_CONTROLLER
 
     # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
-    # Second call is for AptMessage_MGMSG_MOT_SET_VELPARAMS.
+    # Second call is for AptMessage_MGMSG_MOT_SET_HOMEPARAMS.
     # There may be subsequent calls.
     assert mock_connection.send_message_no_reply.call_count >= 2
 
@@ -507,7 +507,7 @@ def test_set_jogparams(mock_connection: Mock) -> None:
     )
 
     # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_JOGPARAMS.
     # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
     assert mock_connection.send_message_expect_reply.call_count == 2
 
@@ -519,7 +519,7 @@ def test_set_jogparams(mock_connection: Mock) -> None:
     assert first_call_args[0][0].source == Address.HOST_CONTROLLER
 
     # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
-    # Second call is for AptMessage_MGMSG_MOT_SET_VELPARAMS.
+    # Second call is for AptMessage_MGMSG_MOT_SET_JOGPARAMS.
     # There may be subsequent calls.
     assert mock_connection.send_message_no_reply.call_count >= 2
 
@@ -580,7 +580,7 @@ def test_get_jogparams(mock_connection: Mock) -> None:
     }
 
     # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # Second call is for AptMessage_MGMSG_MOT_REQ_JOGPARAMS.
     # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
     assert mock_connection.send_message_expect_reply.call_count == 2
 
@@ -627,7 +627,7 @@ def test_get_status(mock_connection: Mock) -> None:
     assert params.status == UStatus(INMOTIONCCW=True, INMOTIONCW=True, HOMED=False)
 
     # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
+    # Second call is for AptMessage_MGMSG_MOT_GET_USTATUSUPDATE.
     # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
     assert mock_connection.send_message_expect_reply.call_count == 2
 
