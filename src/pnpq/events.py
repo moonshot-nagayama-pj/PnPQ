@@ -4,9 +4,13 @@ from enum import StrEnum, auto
 
 @enum.unique
 class Event(StrEnum):
+    APT_CONNECTION_ERROR = auto()
+    APT_POLLER_EXIT = auto()
     RX_MESSAGE_KNOWN = auto()
     RX_MESSAGE_UNKNOWN = auto()
     TX_MESSAGE_ORDERED = auto()
+    TX_MESSAGE_ORDERED_EXPECT_REPLY = auto()
+    TX_MESSAGE_ORDERED_NO_REPLY = auto()
     TX_MESSAGE_UNORDERED = auto()
     UNCAUGHT_EXCEPTION = auto()
 
