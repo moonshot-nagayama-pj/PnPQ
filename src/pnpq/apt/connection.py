@@ -386,9 +386,6 @@ class AptConnection(AbstractAptConnection):
 
     # pylint: disable=R0912
     def _close_inner(self, e: BaseException | None) -> None:
-        if self._closed_event.is_set():
-            return
-
         # For normal closes, when we haven't been given an exception,
         # we then want to ignore any other exceptions that the
         # connection worker threads might have experienced: odds are
@@ -411,6 +408,9 @@ class AptConnection(AbstractAptConnection):
                 except Empty:
                     break
 
+        if self._closed_event.is_set():
+            return
+
         try:
             self._shutdown_threads()
             self._tx_ordered_sender_thread.join()
@@ -421,8 +421,9 @@ class AptConnection(AbstractAptConnection):
                 self._connection.close()
         finally:
             self._closed_event.set()
-            if e is not None:
-                raise e
+
+        if e is not None:
+            raise e
 
     def _shutdown_threads(self) -> None:
         self._opened_event.clear()

@@ -1,4 +1,3 @@
-import atexit
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -193,8 +192,6 @@ class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMP
     available_channels: frozenset[ChanIdent] = frozenset([])
 
     def __post_init__(self) -> None:
-        atexit.register(self._stop_poller)
-
         # Start polling thread
         object.__setattr__(
             self,
@@ -414,12 +411,6 @@ class PolarizationControllerThorlabsMPC(AbstractPolarizationControllerThorlabsMP
                 time.sleep(0.1)
         except BaseException as e:  # pylint: disable=W0718
             self.log.debug(event=Event.APT_POLLER_EXIT, exc_info=e)
-
-    def _stop_poller(self) -> None:
-        """Called by atexit when the Python interpreter is exiting to
-        stop the poller thread."""
-        self._stop_poller_event.set()
-        self._poller_thread.join()
 
 
 @dataclass(frozen=True, kw_only=True)
