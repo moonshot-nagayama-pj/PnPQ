@@ -7,16 +7,22 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "PnPQ"
-copyright = "2024, PnPQ contributors"
+copyright = "2024-present, PnPQ contributors"
 author = "PnPQ contributors"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "sphinxcontrib.apidoc",
+    "sphinx.ext.apidoc",
 ]
-apidoc_module_dir = "../../src"
+apidoc_modules = [
+    {
+        'path': '../../src/pnpq',
+        'destination': 'api/',
+        'separate_modules': True,
+    },
+]
 autodoc_typehints = "description"
 
 templates_path = ["_templates"]
@@ -27,3 +33,7 @@ exclude_patterns: list[str] = []
 
 html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
+
+# Suppress toc not included warning
+# Because modules.rst is currently unused in the documentation
+suppress_warnings = ['toc.not_included']
