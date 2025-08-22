@@ -29,7 +29,7 @@ ThorLabs
 - :py:mod:`Waveplates (K10CR1) <pnpq.devices.waveplate_thorlabs_k10cr1>`
 - :py:mod:`Optical Delay Line (KBD101) <pnpq.devices.odl_thorlabs_kbd101>`
 - :py:mod:`Optical Switch (OSWxx-yyyyE) <pnpq.devices.switch_thorlabs_osw_e>`
-- :py:mod:`Motorized Polarization Controller (MPC320) <pnpq.devices.polarization_controller_thorlabs_mpc>`
+- :py:mod:`Motorized Polarization Controller (MPC320, MPC220) <pnpq.devices.polarization_controller_thorlabs_mpc>`
 
 OzOptics
 ^^^^^^^^

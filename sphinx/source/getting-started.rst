@@ -8,9 +8,9 @@ ThorLabs APT devices
 
 Many ThorLabs devices use a protocol called APT to communicate via serial. Those supported by PnPQ that uses the APT protocol includes:
 
-- Waveplates
-- Optical Delay Line
-- Motorized Polarization Controller
+- :py:mod:`Waveplates <pnpq.devices.waveplate_thorlabs_k10cr1>`
+- :py:mod:`Optical Delay Line <pnpq.devices.odl_thorlabs_kbd101>`
+- :py:mod:`Motorized Polarization Controller <pnpq.devices.polarization_controller_thorlabs_mpc>`
 
 To operate a ThorLabs device that uses the APT protocol, first instantiate a connection, then pass it to the device's initializer as a parameter.
 
