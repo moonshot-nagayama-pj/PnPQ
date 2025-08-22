@@ -158,6 +158,9 @@ class AbstractOpticalDelayLineThorlabsKBD101(ABC):
     ) -> None:
         """Set velocity parameters on the device.
 
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
+
         :param minimum_velocity: The minimum velocity. According to the
             documentation, this should always be 0. Therefore this parameter
             can be left unused.
@@ -178,6 +181,9 @@ class AbstractOpticalDelayLineThorlabsKBD101(ABC):
         offset_distance: None | Quantity = None,
     ) -> None:
         """Set home parameters on the device.
+
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
 
         :param home_direction: The home direction.
         :param limit_switch: The limit switch.
@@ -200,6 +206,9 @@ class AbstractOpticalDelayLineThorlabsKBD101(ABC):
         jog_stop_mode: StopMode | None = None,
     ) -> None:
         """Set jog parameters on the device.
+
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
 
         :param jog_mode: The jog mode.
         :param jog_step_size: The jog step size.

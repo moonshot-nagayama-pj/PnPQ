@@ -60,9 +60,7 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
     def get_status_all(self) -> tuple[AptMessage_MGMSG_MOT_GET_USTATUSUPDATE, ...]:
         """Fetch the latest status of all channels on the device.
 
-        :return: A tuple of
-            :py:class:`AptMessage_MGMSG_MOT_GET_USTATUSUPDATE`,
-            one for each channel.
+        :return: A tuple of updates, one for each channel.
 
         """
 
@@ -73,8 +71,7 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
         """Fetch the status of a single channel.
 
         :param chan_ident: The motor channel to fetch status for.
-        :return: The message returned by the device, in
-            :py:class:`AptMessage_MGMSG_MOT_GET_USTATUSUPDATE`
+        :return: The message returned by the device.
 
         """
 
@@ -128,8 +125,7 @@ class AbstractPolarizationControllerThorlabsMPC(ABC):
         """Get the parameters of the device represented by
         this instance.
 
-        :return: The set of parameters in a dictionary defined
-            in :py:class:`PolarizationControllerParams`.
+        :return: The set of parameters in a dictionary.
 
         """
 

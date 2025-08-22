@@ -137,6 +137,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
     ) -> None:
         """Set velocity parameters on the device.
 
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
+
         :param minimum_velocity: The minimum velocity. According to the
             documentation, this should always be 0. Therefore this parameter
             can be left unused.
@@ -160,6 +163,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
     ) -> None:
         """Set jog parameters on the device.
 
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
+
         :param jog_mode: The jog mode.
         :param jog_step_size: The jog step size.
         :param jog_minimum_velocity: The minimum velocity.
@@ -181,6 +187,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         offset_distance: None | Quantity = None,
     ) -> None:
         """Set home parameters on the device.
+
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
 
         :param home_direction: The home direction.
         :param limit_switch: The limit switch.
@@ -206,9 +215,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
     @abstractmethod
     def is_homed(self) -> bool:
         """Check if the device is homed.
-        Sends the REQ_STATUSUPDATE message and checks the HOMED status bit.
+        Sends the ``REQ_STATUSUPDATE`` message and checks the ``HOMED`` status bit.
 
-        Returns True if the device is homed, False otherwise.
+        :return: ``True`` if the device is homed, ``False`` otherwise.
         """
 
 
