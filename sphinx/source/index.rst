@@ -36,6 +36,8 @@ OzOptics
 
 - :py:mod:`Optical Delay Line (650ml) <pnpq.devices.odl_ozoptics_650ml>`
 
+Note: The OzOptics driver is still in the process of being refactored. It may not be fully supported, and its API may change in the near future.
+
 About the project
 -----------------
 
