@@ -10,26 +10,26 @@ class OpticalSwitchThorlabsEStub(AbstractOpticalSwitchThorlabsE):
     _current_state: State = field(default=State.BAR)
 
     def set_state(self, state: State) -> None:
-        self._fail_if_not_opened()
+        self._fail_if_not_open()
         self._current_state = state
 
     def get_state(self) -> State:
-        self._fail_if_not_opened()
+        self._fail_if_not_open()
         return self._current_state
 
     def get_query_type(self) -> str:
-        self._fail_if_not_opened()
+        self._fail_if_not_open()
         return "0"
 
     def get_board_name(self) -> str:
-        self._fail_if_not_opened()
+        self._fail_if_not_open()
         return "Stub Optical Switch v1.0"
 
     def open(self) -> None:
         self._is_open = True
 
     def close(self) -> None:
-        self._fail_if_not_opened()
+        self._fail_if_not_open()
         self._is_open = False
 
     def __enter__(self) -> "AbstractOpticalSwitchThorlabsE":
