@@ -8,9 +8,9 @@ from types import TracebackType
 from typing import Callable, Iterator, Optional, Self
 
 import serial.tools.list_ports
-import serial.tools.list_ports_linux
 import structlog
 from serial import Serial
+from serial.tools.list_ports_common import ListPortInfo
 
 import pnpq.apt
 from pnpq.errors import InvalidStateException
@@ -292,7 +292,7 @@ class AptConnection(AbstractAptConnection):
             raise InvalidStateException("Tried to use a closed AptConnection object.")
         return True
 
-    def _find_port(self) -> serial.tools.list_ports_linux.SysFS:
+    def _find_port(self) -> ListPortInfo:
         port_found = False
         port = None
         for possible_port in serial.tools.list_ports.comports():
