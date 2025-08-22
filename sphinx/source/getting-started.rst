@@ -6,7 +6,7 @@ Getting Started with PnPQ
 ThorLabs APT devices
 --------------------
 
-Many ThorLabs devices use a protocol called APT to communicate via serial. Those supported by PnPQ that uses the APT protocol includes:
+Many ThorLabs devices use a protocol called APT to communicate over USB. PnPQ supports the following APT devices:
 
 - :py:mod:`Waveplates <pnpq.devices.waveplate_thorlabs_k10cr1>`
 - :py:mod:`Optical Delay Line <pnpq.devices.odl_thorlabs_kbd101>`
