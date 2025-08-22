@@ -27,7 +27,7 @@ jobs:
 
   publish-package:
     needs: [run-checks, draft-release]
-    environment: pypi-test
+    environment: pypi
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
