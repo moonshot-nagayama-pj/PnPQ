@@ -20,9 +20,9 @@ High unit test coverage and complete type safety.
 
 ## Documentation
 
-The documentation can be seen at [https://moonshot-nagayama-pj.github.io/PnPQ/](https://moonshot-nagayama-pj.github.io/PnPQ/).
+The documentation can be found at [https://moonshot-nagayama-pj.github.io/PnPQ/](https://moonshot-nagayama-pj.github.io/PnPQ/).
 
-## How to get started
+## Example
 
 Below is sample code that moves the paddles of a Thorlabs motorized polarization controller (mpc320) with serial number `123456789` to a position representing 160 degrees.
 ```py
@@ -30,7 +30,9 @@ Below is sample code that moves the paddles of a Thorlabs motorized polarization
     device = PolarizationControllerThorlabsMPC320(connection=connection)
     device.move_absolute(ChanIdent.CHANNEL_1, 160 * pnpq_ureg.degree)
 ```
-The `with` syntax is necessary in order to properly open and close the connection object. More details can be seen in the documentation above.
+The `with` syntax is necessary in order to properly open and close the connection object.
+
+More information can be found in the [documentation's getting started guide](https://moonshot-nagayama-pj.github.io/PnPQ/).
 
 ## Contributing
 
