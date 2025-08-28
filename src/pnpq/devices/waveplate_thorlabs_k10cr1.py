@@ -8,7 +8,7 @@ from typing import Any, cast
 import structlog
 from pint import Quantity
 
-from ..apt.connection import AptConnection
+from ..apt.connection import AbstractAptConnection
 from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
@@ -39,6 +39,7 @@ from ..apt.protocol import (
     LimitSwitch,
     StopMode,
 )
+from ..events import Event
 from ..units import pnpq_ureg
 
 
@@ -136,6 +137,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
     ) -> None:
         """Set velocity parameters on the device.
 
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
+
         :param minimum_velocity: The minimum velocity. According to the
             documentation, this should always be 0. Therefore this parameter
             can be left unused.
@@ -159,6 +163,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
     ) -> None:
         """Set jog parameters on the device.
 
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
+
         :param jog_mode: The jog mode.
         :param jog_step_size: The jog step size.
         :param jog_minimum_velocity: The minimum velocity.
@@ -180,6 +187,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
         offset_distance: None | Quantity = None,
     ) -> None:
         """Set home parameters on the device.
+
+        All parameters of this function are optional. Only fields
+        with values are updated on the device.
 
         :param home_direction: The home direction.
         :param limit_switch: The limit switch.
@@ -205,9 +215,9 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
     @abstractmethod
     def is_homed(self) -> bool:
         """Check if the device is homed.
-        Sends the REQ_STATUSUPDATE message and checks the HOMED status bit.
+        Sends the ``REQ_STATUSUPDATE`` message and checks the ``HOMED`` status bit.
 
-        Returns True if the device is homed, False otherwise.
+        :return: ``True`` if the device is homed, ``False`` otherwise.
         """
 
 
@@ -215,12 +225,14 @@ class AbstractWaveplateThorlabsK10CR1(ABC):
 class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
     _chan_ident = ChanIdent.CHANNEL_1
 
-    connection: AptConnection
+    connection: AbstractAptConnection = field()
     home_on_init: bool = field(default=True)
 
-    # Polling threads
-    tx_poller_thread: threading.Thread = field(init=False)
-    tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
+    # Polling thread
+    _poller_thread: threading.Thread = field(init=False)
+    _stop_poller_event: threading.Event = field(
+        default_factory=threading.Event, init=False
+    )
 
     log = structlog.get_logger()
 
@@ -228,11 +240,11 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         # Start polling thread
         object.__setattr__(
             self,
-            "tx_poller_thread",
-            threading.Thread(target=self.tx_poll, daemon=True),
+            "_poller_thread",
+            threading.Thread(target=self._poller),
         )
 
-        self.tx_poller_thread.start()
+        self._poller_thread.start()
 
         # Send autoupdate
         self.connection.send_message_no_reply(
@@ -252,49 +264,34 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             # Home the device on startup
             self.log.info("[Waveplate] Device is not homed, homing on setup.")
 
-            # Set home velocity to 500 times the default amount
-            # because the default amount is really slow
-            self.set_homeparams(
-                home_velocity=73291 * pnpq_ureg.k10cr1_velocity * 500,
+            # Set device parameters to the same values that the
+            # official application does. The home parameter values
+            # seem to be lost on poweroff; others may be as well.
+            self.set_velparams(
+                acceleration=15020 * pnpq_ureg.k10cr1_acceleration,
+                maximum_velocity=73300775 * pnpq_ureg.k10cr1_velocity,
+                minimum_velocity=0 * pnpq_ureg.k10cr1_velocity,
             )
-            time.sleep(1)
+            self.set_jogparams(
+                jog_acceleration=22530 * pnpq_ureg.k10cr1_acceleration,
+                jog_maximum_velocity=109951163 * pnpq_ureg.k10cr1_velocity,
+                jog_minimum_velocity=0 * pnpq_ureg.k10cr1_velocity,
+                jog_mode=JogMode.SINGLE_STEP,
+                jog_step_size=682667 * pnpq_ureg.k10cr1_step,
+                jog_stop_mode=StopMode.CONTROLLED,
+            )
+            self.set_homeparams(
+                home_direction=HomeDirection.REVERSE,
+                limit_switch=LimitSwitch.HARDWARE_REVERSE,
+                home_velocity=73300775 * pnpq_ureg.k10cr1_velocity,
+                offset_distance=546133 * pnpq_ureg.k10cr1_step,
+            )
             self.home()
 
         else:
             self.log.info(
                 "[Waveplate] Device is not homed, but skipping homing on setup because home_on_init is set to False.",
             )
-
-    # Polling thread for sending status update requests
-    def tx_poll(self) -> None:
-        with self.tx_poller_thread_lock:
-            while True:
-                self.connection.send_message_unordered(
-                    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
-                        destination=Address.GENERIC_USB,
-                        source=Address.HOST_CONTROLLER,
-                    )
-                )
-                # If we are currently waiting for a reply to a message
-                # we sent, poll every 0.2 seconds to ensure a
-                # relatively quick response to state changes that we
-                # observe using status update messages. If we are not
-                # waiting for a reply, poll at least once every second
-                # to reduce the amount of noise in logs.
-                #
-                # The tx_ordered_sender thread can request a faster
-                # update by setting the
-                # tx_ordered_sender_awaiting_reply event.
-                if self.connection.tx_ordered_sender_awaiting_reply.is_set():
-                    time.sleep(0.2)
-                else:
-                    # The documentation for
-                    # MGMSG_MOT_ACK_USTATUSUPDATE suggests that it
-                    # should be sent at least once a second. This will
-                    # probably send slightly less frequently than once
-                    # a second, so, if we start having issues, we
-                    # should decrease this interval.
-                    self.connection.tx_ordered_sender_awaiting_reply.wait(0.9)
 
     def set_channel_enabled(self, enabled: bool) -> None:
         if enabled:
@@ -400,6 +397,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 .magnitude,
             )
         )
+        time.sleep(1)
 
     def get_jogparams(self) -> WaveplateJogParams:
         params = self.connection.send_message_expect_reply(
@@ -475,6 +473,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             )
         )
         self.log.debug("set_jogparams", params=params)
+        time.sleep(1)
 
     def get_homeparams(self) -> WaveplateHomeParams:
         params = self.connection.send_message_expect_reply(
@@ -532,6 +531,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 .magnitude,
             )
         )
+        time.sleep(1)
 
     def home(self) -> None:
         self.set_channel_enabled(True)
@@ -591,3 +591,31 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         )
         assert isinstance(status_message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
         return status_message.status.HOMED
+
+    def _poller(self) -> None:
+        """Intended to be run in a background thread.
+
+        Constantly send ``ACK_USTATUSUPDATE`` messages to keep the
+        connection alive; some parts of the official manual suggest
+        that if this ``ACK`` message is not sent at regular intervals,
+        the device will assume the connection is closed and stop
+        responding to commands.
+
+        Generally speaking, this thread will always exit with an
+        exception of some kind; the exception is only logged at debug
+        level to avoid cluttering the log, but if status update
+        messages are mysteriously failing to appear, this is a good
+        place to start.
+
+        """
+        try:
+            while not self._stop_poller_event.is_set():
+                time.sleep(0.9)
+                self.connection.send_message_unordered(
+                    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
+                        destination=Address.GENERIC_USB,
+                        source=Address.HOST_CONTROLLER,
+                    )
+                )
+        except BaseException as e:  # pylint: disable=W0718
+            self.log.debug(event=Event.APT_POLLER_EXIT, exc_info=e)

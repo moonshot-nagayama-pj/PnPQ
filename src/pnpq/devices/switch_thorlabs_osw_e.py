@@ -27,30 +27,24 @@ class AbstractOpticalSwitchThorlabsE(ABC):
         """Set the switch to the specified state.
         This function is idempotent; if the switch is already in the desired state, setting it to the same state again will not cause an error.
 
-        :param state: The new :py:class:`State` to set the switch to.
+        :param state: The state to set the switch to.
         """
 
     @abstractmethod
     def get_state(self) -> State:
         """Get the current state of the switch.
 
-        :return: The current state of the switch, defined in :py:class:`State`.
+        :return: The current state of the switch.
         """
 
     # Get system information
     @abstractmethod
     def get_query_type(self) -> str:
-        """Get the OSW board type code according to the configuration table.
-
-        :return: The OSW board type code in string.
-        """
+        """Get the OSW board type code according to the configuration table."""
 
     @abstractmethod
     def get_board_name(self) -> str:
-        """Get the name and the firmware version of the switch.
-
-        :return: The name and firmware version of the switch in string.
-        """
+        """Get the name and the firmware version of the switch."""
 
     @abstractmethod
     def open(self) -> None:

@@ -25,6 +25,7 @@ from pnpq.devices.polarization_controller_thorlabs_mpc import (
     PolarizationControllerParams,
     PolarizationControllerThorlabsMPC320,
 )
+from pnpq.errors import InvalidStateException
 from pnpq.units import pnpq_ureg
 
 
@@ -34,7 +35,13 @@ def mock_connection_fixture() -> Any:
     connection.stop_event = Mock()
     connection.tx_ordered_sender_awaiting_reply = Mock()
     connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
-    return connection
+    yield connection
+
+    # Shut down the polling thread
+    def mock_send_message_unordered(message: AptMessage) -> None:
+        raise InvalidStateException("Tried to use a closed AptConnection object.")
+
+    connection.send_message_unordered.side_effect = mock_send_message_unordered
 
 
 def test_move_absolute(mock_connection: Any) -> None:
