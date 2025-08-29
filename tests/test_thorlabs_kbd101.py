@@ -8,6 +8,7 @@ from pnpq.apt.protocol import (
     Address,
     AptMessage,
     AptMessage_MGMSG_MOD_IDENTIFY,
+    AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_GET_JOGPARAMS,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
@@ -25,6 +26,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_SET_JOGPARAMS,
     AptMessage_MGMSG_MOT_SET_VELPARAMS,
     ChanIdent,
+    EnableState,
     HomeDirection,
     JogDirection,
     JogMode,
@@ -63,19 +65,30 @@ ustatus_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
 )
 
 
+def assert_init_messages(mock_connection: Mock) -> None:
+    # When the device is initialized, it first sends a status update
+    # request to find out if it is homed. In these tests, we always
+    # send a mock reply indicating that it is already homed, which
+    # means home() is not called during init.
+    call_args = mock_connection.send_message_expect_reply.call_args_list[0]
+    assert isinstance(call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
+    assert call_args[0][0].chan_ident == ChanIdent(1)
+    assert call_args[0][0].destination == Address.GENERIC_USB
+    assert call_args[0][0].source == Address.HOST_CONTROLLER
+
+
 def test_identify(mock_connection: Mock) -> None:
     odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     odl.identify()
 
-    # One call to send MGMSG_HW_START_UPDATEMSGS, and the other for MGMSG_MOD_IDENTIFY
-    assert mock_connection.send_message_no_reply.call_count == 2
+    assert_init_messages(mock_connection)
 
     # Assert function called with correct parameters
-    first_call_args = mock_connection.send_message_no_reply.call_args_list[1]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOD_IDENTIFY)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOD_IDENTIFY)
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
 
 
 def test_home(mock_connection: Mock) -> None:
@@ -102,17 +115,7 @@ def test_home(mock_connection: Mock) -> None:
     odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     odl.home()
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_MOVE_HOME.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # Assert the message that is sent to move the ODL
     second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
@@ -152,17 +155,7 @@ def test_move_absolute(mock_connection: Mock) -> None:
     controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     controller.move_absolute(1000 * pnpq_ureg.kbd101_position)
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_MOVE_ABSOLUTE.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # Assert the message that is sent to move the ODL
     second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
@@ -201,17 +194,7 @@ def test_jog(mock_connection: Mock) -> None:
     odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     odl.jog(JogDirection.FORWARD)
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_MOVE_JOG.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # Assert the message that is sent to move the ODL
     second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
@@ -254,17 +237,7 @@ def test_get_velparams(mock_connection: Mock) -> None:
         "maximum_velocity": 3 * pnpq_ureg.kbd101_velocity,
     }
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # Assert the message that is sent to move the ODL
     second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
@@ -309,17 +282,7 @@ def test_set_velparams(mock_connection: Mock) -> None:
         maximum_velocity=3 * pnpq_ureg.kbd101_velocity,
     )
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_VELPARAMS.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
     # Second call is for AptMessage_MGMSG_MOT_SET_VELPARAMS.
@@ -375,17 +338,7 @@ def test_get_homeparams(mock_connection: Mock) -> None:
         "offset_distance": 2 * pnpq_ureg.kbd101_position,
     }
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_HOMEPARAMS.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # Assert the message that is sent to move the ODL
     second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
@@ -432,24 +385,14 @@ def test_set_homeparams(mock_connection: Mock) -> None:
         offset_distance=2 * pnpq_ureg.kbd101_position,
     )
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_HOMEPARAMS.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
     # Second call is for AptMessage_MGMSG_MOT_SET_HOMEPARAMS.
     # There may be subsequent calls.
     assert mock_connection.send_message_no_reply.call_count >= 2
 
-    # Assert the message that is sent to move the ODL
+    # Assert the message to set home params
     second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
     assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_SET_HOMEPARAMS)
     assert second_call_args[0][0].home_direction == HomeDirection.FORWARD
@@ -502,24 +445,14 @@ def test_set_jogparams(mock_connection: Mock) -> None:
         jog_stop_mode=StopMode.CONTROLLED,
     )
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_JOGPARAMS.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # First call is for AptMessage_MGMSG_HW_START_UPDATEMSGS.
     # Second call is for AptMessage_MGMSG_MOT_SET_JOGPARAMS.
     # There may be subsequent calls.
     assert mock_connection.send_message_no_reply.call_count >= 2
 
-    # Assert the message that is sent to move the ODL
+    # Assert the message that is sent to set the jog params
     second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
     assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOT_SET_JOGPARAMS)
     assert second_call_args[0][0].jog_mode == JogMode.CONTINUOUS
@@ -575,17 +508,7 @@ def test_get_jogparams(mock_connection: Mock) -> None:
         "jog_stop_mode": StopMode.CONTROLLED,
     }
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_REQ_JOGPARAMS.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
-
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+    assert_init_messages(mock_connection)
 
     # Assert the message that is sent to move the ODL
     second_call_args = mock_connection.send_message_expect_reply.call_args_list[1]
@@ -613,23 +536,41 @@ def test_get_status(mock_connection: Mock) -> None:
 
     controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
 
-    params: AptMessage_MGMSG_MOT_GET_USTATUSUPDATE = controller.get_status()
-    assert params.chan_ident == ChanIdent(1)
-    assert params.destination == Address.HOST_CONTROLLER
-    assert params.source == Address.GENERIC_USB
-    assert params.velocity == 1
-    assert params.position == 2
-    assert params.motor_current == 3 * pnpq_ureg.milliamp
-    assert params.status == UStatus(INMOTIONCCW=True, INMOTIONCW=True, HOMED=False)
+    assert_init_messages(mock_connection)
 
-    # First call is to initialize and home.
-    # Second call is for AptMessage_MGMSG_MOT_GET_USTATUSUPDATE.
-    # (Enabling and disabling the channel doesn't use an expect reply in KBD101)
-    assert mock_connection.send_message_expect_reply.call_count == 2
+    status = controller.get_status()
+    assert status.chan_ident == ChanIdent(1)
+    assert status.destination == Address.HOST_CONTROLLER
+    assert status.source == Address.GENERIC_USB
+    assert status.velocity == 1
+    assert status.position == 2
+    assert status.motor_current == 3 * pnpq_ureg.milliamp
+    assert status.status == UStatus(INMOTIONCCW=True, INMOTIONCW=True, HOMED=False)
 
-    # Assert the message that is sent when KBD101 initializes and homes
-    first_call_args = mock_connection.send_message_expect_reply.call_args_list[0]
-    assert isinstance(first_call_args[0][0], AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE)
-    assert first_call_args[0][0].chan_ident == ChanIdent(1)
-    assert first_call_args[0][0].destination == Address.GENERIC_USB
-    assert first_call_args[0][0].source == Address.HOST_CONTROLLER
+
+def test_set_channel_enabled_true(mock_connection: Mock) -> None:
+    controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
+    assert_init_messages(mock_connection)
+
+    controller.set_channel_enabled(True)
+
+    second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOD_SET_CHANENABLESTATE)
+    assert second_call_args[0][0].chan_ident == ChanIdent(1)
+    assert second_call_args[0][0].enable_state == EnableState.CHANNEL_ENABLED
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
+
+
+def test_set_channel_enabled_false(mock_connection: Mock) -> None:
+    controller = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
+    assert_init_messages(mock_connection)
+
+    controller.set_channel_enabled(False)
+
+    second_call_args = mock_connection.send_message_no_reply.call_args_list[1]
+    assert isinstance(second_call_args[0][0], AptMessage_MGMSG_MOD_SET_CHANENABLESTATE)
+    assert second_call_args[0][0].chan_ident == ChanIdent(0)
+    assert second_call_args[0][0].enable_state == EnableState.CHANNEL_ENABLED
+    assert second_call_args[0][0].destination == Address.GENERIC_USB
+    assert second_call_args[0][0].source == Address.HOST_CONTROLLER
