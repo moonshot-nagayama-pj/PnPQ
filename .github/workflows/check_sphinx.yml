@@ -12,11 +12,13 @@ on:
   workflow_call:
 
 jobs:
-  check-codes:
+  check-sphinx:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout repository
       uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
 
     - name: Install uv and enable caching
       uses: astral-sh/setup-uv@v6
