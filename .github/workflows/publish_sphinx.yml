@@ -14,22 +14,25 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
 
     - name: Install uv and enable caching
       uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
-        version: "0.8.11"
+        version: "0.8.13"
 
     - name: Set up Python with uv and sync dependencies
       run: |
         uv python install
         uv sync
 
-    - name: Activate environment and build documentation
+    - name: Activate environment and build documentation for all released versions and main
       run: |
         source .venv/bin/activate
-        sphinx-build -M html sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all
+        sphinx-multiversion sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all
+        cat > sphinx/build/index.html <<< '<!DOCTYPE html><html><head><title>Redirecting to main branch documentation</title><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./main/index.html"><link rel="canonical" href="https://moonshot-nagayama-pj.github.io/PnPQ/main/index.html"></head></html>'
 
     - name: Upload documentation files as artifact
       uses: actions/upload-pages-artifact@v3

@@ -1,0 +1,37 @@
+# Check that Sphinx multiversion document generation works. This is
+# typically avoided during development and is not run during the check
+# script, because it must regenerate the documentation for all
+# releases, which may be quite slow.
+
+name: Check Sphinx multiversion generation
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+  workflow_call:
+
+jobs:
+  check-sphinx:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Install uv and enable caching
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        version: "0.8.13"
+
+    - name: Set up Python with uv and sync dependencies
+      run: |
+        uv python install
+        uv sync
+
+    - name: Activate environment and build documentation for all released versions and main
+      run: |
+        source .venv/bin/activate
+        sphinx-multiversion sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all

@@ -15,6 +15,7 @@ author = "PnPQ contributors"
 
 extensions = [
     "sphinx.ext.apidoc",
+    "sphinx_multiversion",
 ]
 apidoc_modules = [
     {
@@ -34,6 +35,24 @@ exclude_patterns: list[str] = []
 html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
 
+html_sidebars = {
+    '**': [
+        "navbar-logo.html",
+        "icon-links.html",
+        "search-button-field.html",
+        "sbt-sidebar-nav.html",
+        'versioning.html',
+    ],
+}
+
 # Suppress toc not included warning
 # Because modules.rst is currently unused in the documentation
 suppress_warnings = ['toc.not_included']
+
+# sphinx-multiversion
+smv_tag_whitelist = r'^v[0-9]+[.][0-9]+[.][0-9]+$'
+smv_branch_whitelist = r'^main$'
+
+# The latest version pointer is updated by the release script on each
+# release.
+smv_latest_version = 'v0.1.0'

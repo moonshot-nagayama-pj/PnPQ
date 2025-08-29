@@ -34,13 +34,13 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Install uv and enable caching
       uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
-        version: "0.8.11"
+        version: "0.8.13"
 
     - name: Set up Python with uv
       run: uv python install
