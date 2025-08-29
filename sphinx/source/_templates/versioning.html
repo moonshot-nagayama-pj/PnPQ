@@ -1,0 +1,17 @@
+{% if versions %}
+<h2>Versions</h2>
+<ul>
+  <li>Unreleased</li>
+  <ul>
+    {%- for item in versions.branches %}
+    <li><a href="{{ item.url }}">{{ item.name }}</a></li>
+    {%- endfor %}
+  </ul>
+  <li>Released</li>
+  <ul>
+    {%- for item in versions.tags %}
+    <li><a href="{{ item.url }}">{{ item.name }}</a></li>
+    {%- endfor %}
+  </ul>
+</ul>
+{% endif %}

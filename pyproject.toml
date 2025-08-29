@@ -59,6 +59,7 @@ dev = [
     "ruff>=0.7.4",
     "sphinx>=8.2.0",
     "sphinx-book-theme>=1.1.4",
+    "sphinx-multiversion>=0.2.4",
 ]
 
 [tool.hatch.build.targets.wheel]

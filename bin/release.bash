@@ -17,12 +17,18 @@ errmsg() {
   stdmsg "$*" 1>&2
 }
 
+# To avoid cross-platform problems between MacOS sed and GNU sed, do
+# not use sed -i below, instead, write to a temp file
+temp_sphinx_conf=$(mktemp)
+
 # Trap exit handler
 trap_exit() {
   # It is critical that the first line capture the exit code. Nothing
   # else can come before this. The exit code recorded here comes from
   # the command that caused the script to exit.
   local exit_status="$?"
+
+  rm -rf "${temp_sphinx_conf}"
 
   if [[ ${exit_status} -ne 0 ]]; then
     errmsg 'The script did not complete successfully.'
@@ -91,9 +97,12 @@ stdmsg "Run checks before starting the release process..."
 
 stdmsg "Starting release process..."
 
-# Removing dev from version number in pyproject.toml
 stdmsg "Removing '.dev0' from version in pyproject.toml..."
 uv version "${updated_version}"
+
+stdmsg "Updating smv_latest_version in the Sphinx config..."
+sed "s/smv_latest_version.*=.*'v.*'/smv_latest_version = 'v${updated_version}'/" "${base_dir}"/sphinx/source/conf.py >"${temp_sphinx_conf}"
+mv "${temp_sphinx_conf}" "${base_dir}"/sphinx/source/conf.py
 
 stdmsg "Releasing version: ${updated_version}"
 

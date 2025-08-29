@@ -1,0 +1,17 @@
+{% extends "!page.html" %}
+{% block body %}
+{% if current_version and latest_version and current_version != latest_version %}
+<p>
+  <strong>
+    You are reading the documentation for
+    {% if current_version.name == 'main' %}
+    the main branch, which may contain unreleased changes.
+    {% else %}
+    {{current_version.name}}, an older version.
+    {% endif %}
+    The most recent release is <a href="{{ vpathto(latest_version.name) }}">{{latest_version.name}}</a>.
+  </strong>
+</p>
+{% endif %}
+{{ super() }}
+{% endblock %}%
