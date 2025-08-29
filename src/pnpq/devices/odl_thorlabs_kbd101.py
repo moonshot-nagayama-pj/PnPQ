@@ -503,8 +503,8 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
         result = OpticalDelayLineHomeParams()
         result["home_direction"] = params.home_direction
         result["limit_switch"] = params.limit_switch
-        result["home_velocity"] = params.home_velocity
-        result["offset_distance"] = params.offset_distance
+        result["home_velocity"] = params.home_velocity * pnpq_ureg.kbd101_velocity
+        result["offset_distance"] = params.offset_distance * pnpq_ureg.kbd101_position
 
         return result
 

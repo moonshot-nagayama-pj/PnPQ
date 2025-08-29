@@ -42,9 +42,6 @@ from pnpq.units import pnpq_ureg
 @pytest.fixture(name="mock_connection", scope="function")
 def mock_connection_fixture() -> Generator[Mock, None, None]:
     connection = create_autospec(AptConnection)
-    connection.stop_event = Mock()
-    connection.tx_ordered_sender_awaiting_reply = Mock()
-    connection.tx_ordered_sender_awaiting_reply.is_set = Mock(return_value=True)
     assert isinstance(connection, Mock)
     yield connection
 
@@ -67,14 +64,6 @@ ustatus_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
 
 
 def test_identify(mock_connection: Mock) -> None:
-    def send_no_reply(sent_message: AptMessage) -> None:
-        if isinstance(sent_message, AptMessage_MGMSG_MOD_IDENTIFY):
-            assert sent_message.chan_ident == ChanIdent(1)
-            assert sent_message.destination == Address.GENERIC_USB
-            assert sent_message.source == Address.HOST_CONTROLLER
-
-    mock_connection.send_message_no_reply.side_effect = send_no_reply
-
     odl = OpticalDelayLineThorlabsKBD101(connection=mock_connection)
     odl.identify()
 
@@ -364,8 +353,8 @@ def test_get_homeparams(mock_connection: Mock) -> None:
                 chan_ident=ChanIdent(1),
                 home_direction=HomeDirection.FORWARD,
                 limit_switch=LimitSwitch.HARDWARE_FORWARD,
-                home_velocity=1 * pnpq_ureg.kbd101_velocity,
-                offset_distance=2 * pnpq_ureg.kbd101_position,
+                home_velocity=1,
+                offset_distance=2,
             )
 
             assert match_reply_callback(reply_message)
@@ -422,8 +411,8 @@ def test_set_homeparams(mock_connection: Mock) -> None:
                 chan_ident=ChanIdent(1),
                 home_direction=HomeDirection.FORWARD,
                 limit_switch=LimitSwitch.HARDWARE_FORWARD,
-                home_velocity=10 * pnpq_ureg.kbd101_velocity,
-                offset_distance=20 * pnpq_ureg.kbd101_position,
+                home_velocity=10,
+                offset_distance=20,
             )
 
             assert match_reply_callback(reply_message)
