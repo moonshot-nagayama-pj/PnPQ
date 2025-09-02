@@ -2,12 +2,14 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from threading import Lock
+from threading import Event, Lock
 from types import TracebackType
 
 import serial
 import serial.tools.list_ports
 from serial import Serial
+
+from pnpq.errors import InvalidStateException
 
 from .utils import timeout
 
@@ -71,9 +73,10 @@ class AbstractOpticalSwitchThorlabsE(ABC):
 @dataclass(frozen=True, kw_only=True)
 class SerialConfig:
     """Serial connection configuration parameters, to be passed to
-    ``serial.Serial``. These defaults are used by all known Thorlabs
-    devices that implement the APT protocol and should not need to be
-    changed."""
+    ``serial.Serial``. The defaults are used by all known devices
+    supported by this class and do not need to be changed.
+
+    """
 
     baudrate: int = field(default=115200)
     bytesize: int = field(default=serial.EIGHTBITS)
@@ -97,11 +100,12 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
     # devices supported by this class and do not need to be changed.
     serial_config: SerialConfig = field(default_factory=SerialConfig)
 
-    # Private member variables
-    _connection: Serial = field(init=False)
+    # Private
 
-    # Add a mutex lock to ensure thread safety
+    _connection: Serial = field(init=False)
     _communication_lock: Lock = field(default_factory=Lock, init=False)
+    _opened_event: Event = field(default_factory=Event, init=False)
+    _closed_event: Event = field(default_factory=Event, init=False)
 
     def __enter__(self) -> "AbstractOpticalSwitchThorlabsE":
         self.open()
@@ -116,6 +120,14 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
         self.close()
 
     def open(self) -> None:
+        if self._opened_event.is_set():
+            raise InvalidStateException(
+                "Tried to re-open a connection that was already open."
+            )
+        if self._closed_event.is_set():
+            raise InvalidStateException(
+                "Tried to re-open a connection that was already closed."
+            )
         with self._communication_lock:
             self._open()
 
@@ -158,22 +170,19 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
                 write_timeout=self.serial_config.write_timeout,
             ),
         )
-
-        time.sleep(0.1)
-        self._connection.flush()
-
-        # Remove anything that might be left over in the buffer from
-        # previous runs
-        self._connection.reset_input_buffer()
-        self._connection.reset_output_buffer()
+        self._clean_buffer()
+        self._opened_event.set()
 
     def close(self) -> None:
+        self._opened_event.clear()
+        self._closed_event.set()
         with self._communication_lock:
             if self._connection.is_open:
-                self._connection.flush()
+                self._clean_buffer()
                 self._connection.close()
 
     def set_state(self, state: State) -> None:
+        self._fail_if_closed()
         with self._communication_lock, timeout(3) as check_timeout:
             # Generate command from the state's enum value
             command = f"S {state.value}\n".encode("utf-8")
@@ -185,6 +194,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
                     break
 
     def get_state(self) -> State:
+        self._fail_if_closed()
         with self._communication_lock:
             return self._get_state()
 
@@ -196,6 +206,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
         return State(int(response.decode("utf-8")))
 
     def get_query_type(self) -> str:
+        self._fail_if_closed()
         with self._communication_lock:
             command = b"T?\n"
             self._connection.write(command)
@@ -203,6 +214,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
             return response.decode("utf-8")
 
     def get_board_name(self) -> str:
+        self._fail_if_closed()
         with self._communication_lock:
             command = b"I?\n"
             self._connection.write(command)
@@ -213,3 +225,14 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
         """Read a response from the serial connection."""
         response = self._connection.read_until(b"\r\n")[:-2]  # Remove the trailing \r\n
         return response
+
+    def _clean_buffer(self) -> None:
+        time.sleep(0.5)
+        self._connection.flush()
+        time.sleep(0.5)
+        self._connection.reset_input_buffer()
+        self._connection.reset_output_buffer()
+
+    def _fail_if_closed(self) -> None:
+        if (not self._opened_event.is_set()) or self._closed_event.is_set():
+            raise InvalidStateException("Tried to use a closed switch object.")
