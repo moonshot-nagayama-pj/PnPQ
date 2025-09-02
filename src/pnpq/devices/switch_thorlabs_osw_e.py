@@ -69,23 +69,35 @@ class AbstractOpticalSwitchThorlabsE(ABC):
 
 
 @dataclass(frozen=True, kw_only=True)
-class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
-    # Required
-    serial_number: str
+class SerialConfig:
+    """Serial connection configuration parameters, to be passed to
+    ``serial.Serial``. These defaults are used by all known Thorlabs
+    devices that implement the APT protocol and should not need to be
+    changed."""
 
-    # All other properties are optional.
-
-    # Serial connection parameters.
     baudrate: int = field(default=115200)
     bytesize: int = field(default=serial.EIGHTBITS)
     exclusive: bool = field(default=True)
     parity: str = field(default=serial.PARITY_NONE)
     rtscts: bool = field(default=True)
     stopbits: int = field(default=serial.STOPBITS_ONE)
-    timeout: None | int = field(
-        default=None  # None means wait forever, until the requested number of bytes are received
-    )
+    timeout: None | float = field(default=2.0)
+    write_timeout: None | float = field(default=2.0)
 
+
+@dataclass(frozen=True, kw_only=True)
+class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
+    # Required
+
+    serial_number: str
+
+    # Optional
+
+    # Serial connection parameters. The defaults are used by all known
+    # devices supported by this class and do not need to be changed.
+    serial_config: SerialConfig = field(default_factory=SerialConfig)
+
+    # Private member variables
     __connection: Serial = field(init=False)
 
     # Add a mutex lock to ensure thread safety
@@ -135,14 +147,15 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
             self,
             "_OpticalSwitchThorlabs1310E__connection",
             Serial(
-                baudrate=self.baudrate,
-                bytesize=self.bytesize,
-                exclusive=self.exclusive,
-                parity=self.parity,
+                baudrate=self.serial_config.baudrate,
+                bytesize=self.serial_config.bytesize,
+                exclusive=self.serial_config.exclusive,
+                parity=self.serial_config.parity,
                 port=port.device,
-                rtscts=self.rtscts,
-                stopbits=self.stopbits,
-                timeout=self.timeout,
+                rtscts=self.serial_config.rtscts,
+                stopbits=self.serial_config.stopbits,
+                timeout=self.serial_config.timeout,
+                write_timeout=self.serial_config.write_timeout,
             ),
         )
 
