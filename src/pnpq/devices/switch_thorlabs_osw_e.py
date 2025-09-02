@@ -98,12 +98,12 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
     serial_config: SerialConfig = field(default_factory=SerialConfig)
 
     # Private member variables
-    __connection: Serial = field(init=False)
+    _connection: Serial = field(init=False)
 
     # Add a mutex lock to ensure thread safety
-    __communication_lock: Lock = field(default_factory=Lock, init=False)
+    _communication_lock: Lock = field(default_factory=Lock, init=False)
 
-    def __enter__(self) -> "OpticalSwitchThorlabsE":
+    def __enter__(self) -> "AbstractOpticalSwitchThorlabsE":
         self.open()
         return self
 
@@ -116,10 +116,10 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
         self.close()
 
     def open(self) -> None:
-        with self.__communication_lock:
-            self.__open()
+        with self._communication_lock:
+            self._open()
 
-    def __open(self) -> None:
+    def _open(self) -> None:
         # These devices tend to take a few seconds to start up, and
         # this library tends to be used as part of services that start
         # automatically on computer boot. For safety, wait here before
@@ -145,7 +145,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
 
         object.__setattr__(
             self,
-            "_OpticalSwitchThorlabs1310E__connection",
+            "_connection",
             Serial(
                 baudrate=self.serial_config.baudrate,
                 bytesize=self.serial_config.bytesize,
@@ -160,58 +160,56 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
         )
 
         time.sleep(0.1)
-        self.__connection.flush()
+        self._connection.flush()
 
         # Remove anything that might be left over in the buffer from
         # previous runs
-        self.__connection.reset_input_buffer()
-        self.__connection.reset_output_buffer()
+        self._connection.reset_input_buffer()
+        self._connection.reset_output_buffer()
 
     def close(self) -> None:
-        with self.__communication_lock:
-            if self.__connection.is_open:
-                self.__connection.flush()
-                self.__connection.close()
+        with self._communication_lock:
+            if self._connection.is_open:
+                self._connection.flush()
+                self._connection.close()
 
     def set_state(self, state: State) -> None:
-        with self.__communication_lock, timeout(3) as check_timeout:
+        with self._communication_lock, timeout(3) as check_timeout:
             # Generate command from the state's enum value
             command = f"S {state.value}\n".encode("utf-8")
-            self.__connection.write(command)
+            self._connection.write(command)
 
             while check_timeout():
                 time.sleep(0.3)
-                if self.__get_state() == state:
+                if self._get_state() == state:
                     break
 
     def get_state(self) -> State:
-        with self.__communication_lock:
-            return self.__get_state()
+        with self._communication_lock:
+            return self._get_state()
 
-    def __get_state(self) -> State:
+    def _get_state(self) -> State:
         """Private method to get the status of the switch without locks. This is used to check the status during set_state."""
         command = b"S?\n"
-        self.__connection.write(command)
-        response = self.__read_serial_response()
+        self._connection.write(command)
+        response = self._read_serial_response()
         return State(int(response.decode("utf-8")))
 
     def get_query_type(self) -> str:
-        with self.__communication_lock:
+        with self._communication_lock:
             command = b"T?\n"
-            self.__connection.write(command)
-            response = self.__read_serial_response()
+            self._connection.write(command)
+            response = self._read_serial_response()
             return response.decode("utf-8")
 
     def get_board_name(self) -> str:
-        with self.__communication_lock:
+        with self._communication_lock:
             command = b"I?\n"
-            self.__connection.write(command)
-            response = self.__read_serial_response()
+            self._connection.write(command)
+            response = self._read_serial_response()
             return response.decode("utf-8")
 
-    def __read_serial_response(self) -> bytes:
+    def _read_serial_response(self) -> bytes:
         """Read a response from the serial connection."""
-        response = self.__connection.read_until(b"\r\n")[
-            :-2
-        ]  # Remove the trailing \r\n
+        response = self._connection.read_until(b"\r\n")[:-2]  # Remove the trailing \r\n
         return response
