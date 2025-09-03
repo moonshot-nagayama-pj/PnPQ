@@ -1,5 +1,3 @@
-.. _getting-started-guide:
-
 Getting Started with PnPQ
 =========================
 

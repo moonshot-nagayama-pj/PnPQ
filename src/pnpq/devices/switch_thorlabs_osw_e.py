@@ -99,7 +99,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
 
     This driver has been tested on the `OSW22-1310E <https://www.thorlabs.com/thorproduct.cfm?partnumber=OSW22-1310E>`__.
 
-    Although this driver is cross-platform, it may have difficulty finding devices on MacOS and Linux. These problems can be resolved by modifying your system's udev configuration as described in `the Getting Started guide <https://moonshot-nagayama-pj.github.io/PnPQ/main/getting-started.html>`__.
+    Although this driver is cross-platform, it may have difficulty finding devices on MacOS and Linux. These problems can be resolved by modifying your system's udev configuration as described in :doc:`Getting Started with PnPQ </getting-started>`.
 
     :param serial_number: Required. The device's serial number, which may contain non-numeric characters. To add to the confusion, the serial number printed on the device's label may not be the same as the one visible via USB; on Linux, use ``lsusb -v`` to identify the correct value.
     :param serial_config: Optional. Serial connection parameters. The defaults are used by all known devices supported by this class and do not need to be changed.
