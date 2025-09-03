@@ -26,7 +26,7 @@ def test_set_state(connected_switch: AbstractOpticalSwitchThorlabsE) -> None:
 
 
 def test_auxiliary_function(connected_switch: AbstractOpticalSwitchThorlabsE) -> None:
-    query_type = connected_switch.get_query_type()
+    query_type = connected_switch.get_type_code()
     assert query_type == "0"
     board_name = connected_switch.get_board_name()
     assert board_name == "Stub Optical Switch v1.0"

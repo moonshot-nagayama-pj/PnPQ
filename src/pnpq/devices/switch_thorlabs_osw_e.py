@@ -20,9 +20,7 @@ class State(Enum):
 
 
 class AbstractOpticalSwitchThorlabsE(ABC):
-    """Provides a thread-safe and blocking API for interacting with the Thorlabs OSWxx-yyyyE series of optical switches.
-    This driver has been tested on the `OSW22-1310E <https://www.thorlabs.com/thorproduct.cfm?partnumber=OSW22-1310E>`__.
-    """
+    """Thread-safe, blocking API for the Thorlabs OSWxx-yyyyE series of optical switches."""
 
     @abstractmethod
     def set_state(self, state: State) -> None:
@@ -41,20 +39,26 @@ class AbstractOpticalSwitchThorlabsE(ABC):
 
     # Get system information
     @abstractmethod
-    def get_query_type(self) -> str:
-        """Get the OSW board type code according to the configuration table."""
+    def get_type_code(self) -> str:
+        """:return: The board type code according to the configuration table, as a human-readable, unstructured string. The Thorlabs manual does not seem to explain what the configuration table is."""
 
     @abstractmethod
     def get_board_name(self) -> str:
-        """Get the name and the firmware version of the switch."""
+        """:return: The switch name and firmware version as a human-readable, unstructured string."""
 
     @abstractmethod
     def open(self) -> None:
-        """Open the serial connection to the switch."""
+        """Open the serial connection to the switch.
+
+        Once opened, attempting to call open() again will cause an :py:class:`InvalidStateException`.
+        """
 
     @abstractmethod
     def close(self) -> None:
-        """Close the serial connection to the switch."""
+        """Close the serial connection to the switch.
+
+        Once closed, attempting to re-open the connection will cause an :py:class:`InvalidStateException`.
+        """
 
     @abstractmethod
     def __enter__(self) -> "AbstractOpticalSwitchThorlabsE":
@@ -90,14 +94,24 @@ class SerialConfig:
 
 @dataclass(frozen=True, kw_only=True)
 class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
+    """
+    Thread-safe, blocking driver for the Thorlabs OSWxx-yyyyE series of optical switches.
+
+    This driver has been tested on the `OSW22-1310E <https://www.thorlabs.com/thorproduct.cfm?partnumber=OSW22-1310E>`__.
+
+    Although this driver is cross-platform, it may have difficulty finding devices on MacOS and Linux. These problems can be resolved by modifying your system's udev configuration as described in `the Getting Started guide <https://moonshot-nagayama-pj.github.io/PnPQ/main/getting-started.html>`__.
+
+    :param serial_number: Required. The device's serial number, which may contain non-numeric characters. To add to the confusion, the serial number printed on the device's label may not be the same as the one visible via USB; on Linux, use ``lsusb -v`` to identify the correct value.
+    :param serial_config: Optional. Serial connection parameters. The defaults are used by all known devices supported by this class and do not need to be changed.
+
+    """
+
     # Required
 
     serial_number: str
 
     # Optional
 
-    # Serial connection parameters. The defaults are used by all known
-    # devices supported by this class and do not need to be changed.
     serial_config: SerialConfig = field(default_factory=SerialConfig)
 
     # Private
@@ -147,7 +161,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
                 break
         if not port_found:
             raise ValueError(
-                f"Serial number {self.serial_number} could not be found, failing intialization."
+                f"Serial number {self.serial_number} could not be found, failing intialization. This may have been caused by a problem with your system's udev configuration. Check the PnPQ Getting Started guide for more information."
             )
         assert port is not None
 
@@ -205,7 +219,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
         response = self._read_serial_response()
         return State(int(response.decode("utf-8")))
 
-    def get_query_type(self) -> str:
+    def get_type_code(self) -> str:
         self._fail_if_closed()
         with self._communication_lock:
             command = b"T?\n"
