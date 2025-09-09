@@ -18,7 +18,7 @@ PnPQ is a control library for hardware commonly used in quantum optical experime
 Getting started
 ---------------
 
-Please see the :ref:`getting started guide <getting-started-guide>`.
+Please see :doc:`Getting Started with PnPQ </getting-started>`.
 
 Supported devices
 -----------------

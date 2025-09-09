@@ -17,7 +17,7 @@ class OpticalSwitchThorlabsEStub(AbstractOpticalSwitchThorlabsE):
         self._fail_if_not_open()
         return self._current_state
 
-    def get_query_type(self) -> str:
+    def get_type_code(self) -> str:
         self._fail_if_not_open()
         return "0"
 

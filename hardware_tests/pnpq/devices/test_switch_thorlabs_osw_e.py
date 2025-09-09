@@ -28,7 +28,7 @@ def test_set_state(device: AbstractOpticalSwitchThorlabsE) -> None:
 
 
 def test_get_device_info(device: AbstractOpticalSwitchThorlabsE) -> None:
-    query_type = device.get_query_type()
-    log.info(f"Query type: {query_type}")
+    type_code = device.get_type_code()
+    log.info(f"Type code: {type_code}")
     board_name = device.get_board_name()
     log.info(f"Board name: {board_name}")
