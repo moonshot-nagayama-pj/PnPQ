@@ -17,7 +17,8 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_GET_JOGPARAMS,
-    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
@@ -584,12 +585,24 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+                isinstance(
+                    message,
+                    (
+                        AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES,
+                        AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES,
+                    ),
+                )
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
             ),
         )
-        assert isinstance(status_message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+        assert isinstance(
+            status_message,
+            (
+                AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES,
+                AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES,
+            ),
+        )
         return status_message.status.HOMED
 
     def _poller(self) -> None:
