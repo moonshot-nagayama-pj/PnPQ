@@ -17,9 +17,10 @@ from pnpq.units import pnpq_ureg
 
 log = structlog.get_logger()
 
+serial_number="55409764"
 
 def test_connection() -> None:
-    with AptConnection(serial_number="55409764") as connection:
+    with AptConnection(serial_number=serial_number) as connection:
         assert not connection.is_closed()
         time.sleep(1)
 
@@ -34,14 +35,14 @@ def test_connection() -> None:
 
 def test_homed_on_startup() -> None:
     # Unplug and replug the device before running this test.
-    with AptConnection(serial_number="55409764") as connection:
+    with AptConnection(serial_number=serial_number) as connection:
         device = WaveplateThorlabsK10CR1(connection=connection)
         assert device.is_homed()
 
 
 @pytest.fixture(name="device", scope="module")
 def device_fixture() -> Generator[WaveplateThorlabsK10CR1]:
-    with AptConnection(serial_number="55409764") as connection:
+    with AptConnection(serial_number=serial_number) as connection:
         yield WaveplateThorlabsK10CR1(connection=connection)
 
 
