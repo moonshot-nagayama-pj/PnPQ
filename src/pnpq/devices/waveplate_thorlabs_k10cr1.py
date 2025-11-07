@@ -117,6 +117,10 @@ class WaveplateHomeParams(UserDict[str, Any]):
 
 
 class AbstractWaveplateThorlabsK10CR1(ABC):
+    """Driver for Thorlabs K10CR1 and K10CR2 motorized waveplates.
+
+    These classes may be refactored in the future to create separate implementation classes for each device type; their behavior is very similar, but not exactly the same.
+    """
 
     @abstractmethod
     def move_absolute(self, position: Quantity) -> None:
