@@ -84,6 +84,7 @@ class Address(int, Enum):
     GENERIC_USB = 0x50
     HOST_CONTROLLER = 0x01
     RACK_CONTROLLER = 0x11
+    ZERO = 0x00  # found in MGMSG_MOT_GET_JOGPARAMS on the K10CR2 for some reason
 
 
 @enum.unique
@@ -582,7 +583,7 @@ class AptMessageWithDataPosition(AptMessageWithData):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessageWithDataMotorStatus(AptMessageWithData):
+class AptMessageWithDataMotorStatus_20_BYTES(AptMessageWithData):
     data_length: ClassVar[int] = 14
 
     # The official documentation for this struct does not follow the
@@ -1103,8 +1104,35 @@ class AptMessage_MGMSG_MOT_REQ_POSCOUNTER(AptMessageHeaderOnlyChanIdent):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessageWithData):
+class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessage):
     message_id = AptMessageId.MGMSG_MOT_GET_STATUSUPDATE
+    """
+    K10CR1 uses a 20-byte message; K10CR2 uses a 34-byte message.
+    This class selects the correct subclass automatically.
+    """
+
+    data_length: ClassVar[int]
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_GET_STATUSUPDATE":
+        data_length = len(raw)
+        if data_length == 20:
+            return AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES.from_bytes(raw)
+        if data_length == 34:
+            return AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES.from_bytes(raw)
+        raise ValueError(
+            f"Expected data packet length 20 or 34, but received {data_length} instead. Full raw data was {raw!r}"
+        )
+
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES(
+    AptMessageWithData, AptMessage_MGMSG_MOT_GET_STATUSUPDATE
+):
+    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_GET_STATUSUPDATE
 
     data_length: ClassVar[int] = 14
 
@@ -1170,6 +1198,88 @@ class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessageWithData):
 
 
 @dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES(
+    AptMessageWithData, AptMessage_MGMSG_MOT_GET_STATUSUPDATE
+):
+    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_GET_STATUSUPDATE
+    data_length: ClassVar[int] = 28
+
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}"
+        f"{ATS.WORD}{ATS.LONG}{ATS.LONG}{ATS.DWORD}"
+        f"{ATS.WORD}{ATS.LONG}{ATS.LONG}{ATS.LONG}"
+    )
+
+    chan_ident_1: ChanIdent
+    chan_ident_2: ChanIdent
+    position: int
+    enc_count: int
+    status: Status
+    reserved1: int
+    reserved2: int
+    reserved3: int
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            chan_ident_1,
+            position,
+            enc_count,
+            status_flag,
+            chan_ident_2,
+            reserved1,
+            reserved2,
+            reserved3,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+
+        return cls(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            chan_ident_1=ChanIdent(chan_ident_1),
+            position=position,
+            enc_count=enc_count,
+            status=Status.from_bits(StatusBits(status_flag)),
+            chan_ident_2=ChanIdent(chan_ident_2),
+            reserved1=reserved1,
+            reserved2=reserved2,
+            reserved3=reserved3,
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.chan_ident_1,
+            self.position,
+            self.enc_count,
+            self.status.to_bits(),
+            self.chan_ident_2,
+            self.reserved1,
+            self.reserved2,
+            self.reserved3,
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_REQ_STATUSUPDATE(AptMessageHeaderOnlyChanIdent):
     message_id = AptMessageId.MGMSG_MOT_REQ_STATUSUPDATE
 
@@ -1180,7 +1290,7 @@ class AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(AptMessageHeaderOnlyNoParams):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(AptMessageWithDataMotorStatus):
+class AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(AptMessageWithDataMotorStatus_20_BYTES):
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_GET_USTATUSUPDATE
 
 
@@ -1282,7 +1392,7 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
-    AptMessageWithDataMotorStatus, AptMessage_MGMSG_MOT_MOVE_COMPLETED
+    AptMessageWithDataMotorStatus_20_BYTES, AptMessage_MGMSG_MOT_MOVE_COMPLETED
 ):
     """
     For the K10CR1 and KBD101, a full USTATUS data packet follows the main move completed message, so this message is used.
@@ -1432,7 +1542,7 @@ class AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES(
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES(
-    AptMessageWithDataMotorStatus, AptMessage_MGMSG_MOT_MOVE_STOPPED
+    AptMessageWithDataMotorStatus_20_BYTES, AptMessage_MGMSG_MOT_MOVE_STOPPED
 ):
     """
     For the K10CR1 and KBD101, a full USTATUS data packet follows the main move completed message, so this message is used.

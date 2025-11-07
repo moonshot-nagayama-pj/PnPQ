@@ -17,7 +17,8 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_GET_JOGPARAMS,
-    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
@@ -323,6 +324,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         self.set_channel_enabled(True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
+
         self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(
                 chan_ident=self._chan_ident,
@@ -331,16 +333,18 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
-                and message.chan_ident == self._chan_ident
-                and message.position == absolute_distance
-                and message.destination == Address.HOST_CONTROLLER
-                and message.source == Address.GENERIC_USB
+                (
+                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                    and message.chan_ident == self._chan_ident
+                    and message.position == absolute_distance
+                    and message.destination == Address.HOST_CONTROLLER
+                    and message.source == Address.GENERIC_USB
+                )
             ),
         )
+
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
-
         self.set_channel_enabled(False)
 
     def get_velparams(self) -> WaveplateVelocityParams:
@@ -409,8 +413,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             lambda message: (
                 isinstance(message, AptMessage_MGMSG_MOT_GET_JOGPARAMS)
                 and message.chan_ident == self._chan_ident
-                and message.destination == Address.HOST_CONTROLLER
-                and message.source == Address.GENERIC_USB
+                # Do not test for destination/source here. The K10CR2 appears to send a malformed destination/source pair for this message where the destination is 0 and the source is GENERIC_USB.
             ),
         )
 
@@ -563,10 +566,12 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
-                and message.chan_ident == self._chan_ident
-                and message.destination == Address.HOST_CONTROLLER
-                and message.source == Address.GENERIC_USB
+                (
+                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                    and message.chan_ident == self._chan_ident
+                    and message.destination == Address.HOST_CONTROLLER
+                    and message.source == Address.GENERIC_USB
+                )
             ),
         )
         self.set_channel_enabled(False)
@@ -584,12 +589,24 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+                isinstance(
+                    message,
+                    (
+                        AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES,
+                        AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES,
+                    ),
+                )
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
             ),
         )
-        assert isinstance(status_message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+        assert isinstance(
+            status_message,
+            (
+                AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES,
+                AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES,
+            ),
+        )
         return status_message.status.HOMED
 
     def _poller(self) -> None:

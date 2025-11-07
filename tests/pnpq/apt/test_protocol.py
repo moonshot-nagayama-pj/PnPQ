@@ -18,7 +18,8 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_GET_HOMEPARAMS,
     AptMessage_MGMSG_MOT_GET_JOGPARAMS,
     AptMessage_MGMSG_MOT_GET_POSCOUNTER,
-    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
@@ -310,8 +311,8 @@ def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_to_bytes() -> None:
     assert msg.to_bytes() == b"\x11\x04\x01\x00\x50\x01"
 
 
-def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_from_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE.from_bytes(
+def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_from_20_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES.from_bytes(
         bytes.fromhex("8104 0e00 81 22 0100 01000000 00000000 07000000")
     )
     assert msg.destination == 0x01
@@ -322,8 +323,8 @@ def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_from_bytes() -> None:
     assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
 
 
-def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_to_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
+def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_bytes_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES(
         destination=Address.HOST_CONTROLLER,
         source=Address.BAY_1,
         chan_ident=ChanIdent.CHANNEL_1,
@@ -333,6 +334,42 @@ def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_to_bytes() -> None:
     )
     assert msg.to_bytes() == bytes.fromhex(
         "8104 0e00 81 22 0100 01000000 00000000 07000000"
+    )
+
+
+def test_AptMessage_MGMSG_MOT_STATUSUPDATE_from_34_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES.from_bytes(
+        bytes.fromhex(
+            "8104 1c00 81 22 0100 01000000 00000000 07000000 0100 00000000 00000000 00000000"
+        )
+    )
+    assert msg.destination == 0x01
+    assert msg.message_id == 0x0481
+    assert msg.source == 0x22
+    assert msg.position == 1
+    assert msg.enc_count == 0
+    assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
+
+
+def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_bytes_to_bytes() -> None:
+    """
+    The extra fields correspond to the additional reserved/unused words and longs
+    that will be use by K10CR2.
+    """
+    msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES(
+        destination=Address.HOST_CONTROLLER,
+        source=Address.BAY_1,
+        chan_ident_1=ChanIdent.CHANNEL_1,
+        chan_ident_2=ChanIdent.CHANNEL_1,
+        position=1,
+        enc_count=0,
+        status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+        reserved1=0x00000000,
+        reserved2=0x00000000,
+        reserved3=0x00000000,
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "8104 1c00 81 22 0100 01000000 00000000 07000000 0100 00000000 00000000 00000000"
     )
 
 
