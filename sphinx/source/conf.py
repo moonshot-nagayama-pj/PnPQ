@@ -55,4 +55,4 @@ smv_branch_whitelist = r'^main$'
 
 # The latest version pointer is updated by the release script on each
 # release.
-smv_latest_version = 'v0.1.0'
+smv_latest_version = 'v0.2.0'
