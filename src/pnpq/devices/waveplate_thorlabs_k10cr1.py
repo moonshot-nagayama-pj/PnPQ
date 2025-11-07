@@ -22,7 +22,6 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_GET_VELPARAMS,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
-    AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_MOVE_JOG,
@@ -341,14 +340,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                     and message.destination == Address.HOST_CONTROLLER
                     and message.source == Address.GENERIC_USB
                 )
-                or (
-                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES)
-                    and message.chan_ident_1 == self._chan_ident
-                    and message.chan_ident_2 == self._chan_ident
-                    and message.position == absolute_distance
-                    and message.destination == Address.HOST_CONTROLLER
-                    and message.source == Address.GENERIC_USB
-                )
             ),
         )
 
@@ -579,13 +570,6 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 (
                     isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
                     and message.chan_ident == self._chan_ident
-                    and message.destination == Address.HOST_CONTROLLER
-                    and message.source == Address.GENERIC_USB
-                )
-                or (
-                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES)
-                    and message.chan_ident_1 == self._chan_ident
-                    and message.chan_ident_2 == self._chan_ident
                     and message.destination == Address.HOST_CONTROLLER
                     and message.source == Address.GENERIC_USB
                 )

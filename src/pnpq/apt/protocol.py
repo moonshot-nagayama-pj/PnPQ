@@ -657,90 +657,6 @@ class AptMessageWithDataMotorStatus_20_BYTES(AptMessageWithData):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessageWithDataMotorStatus_34_BYTES(AptMessageWithData):
-    data_length: ClassVar[int] = 28
-    message_struct: ClassVar[Struct] = Struct(
-        f"{AptMessageWithData.header_struct_str}{ATS.WORD}{ATS.LONG}{ATS.SHORT}{ATS.SHORT}{ATS.DWORD}{ATS.WORD}3{ATS.DWORD}"
-    )
-    position: int
-    velocity: int
-    motor_current: Quantity
-    status: UStatus
-    chan_ident_1: ChanIdent
-    chan_ident_2: ChanIdent
-    reserved1: int
-    reserved2: int
-    reserved3: int
-
-    def __post_init__(self) -> None:
-        # Ensure that a unit of current was passed in by attempting to
-        # convert it to milliamps.
-        self.motor_current.to(pnpq_ureg.milliamp)
-
-    @classmethod
-    def from_bytes(cls, raw: bytes) -> Self:
-        (
-            message_id,
-            data_length,
-            destination,
-            source,
-            chan_ident_1,
-            position,
-            velocity,
-            motor_current,
-            status_flag,
-            chan_ident_2,
-            reserved1,
-            reserved2,
-            reserved3,
-        ) = cls.message_struct.unpack(raw)
-
-        if message_id != cls.message_id:
-            raise ValueError(
-                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
-            )
-        if data_length != cls.data_length:
-            raise ValueError(
-                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
-            )
-        if destination & 0x80 != 0x80:
-            raise ValueError(
-                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
-            )
-
-        return cls(
-            destination=Address(destination & 0x7F),
-            source=Address(source),
-            position=position,
-            velocity=velocity,
-            motor_current=(motor_current * pnpq_ureg.milliamp),
-            status=UStatus.from_bits(UStatusBits(status_flag)),
-            chan_ident_1=ChanIdent(chan_ident_1),
-            chan_ident_2=ChanIdent(chan_ident_2),
-            reserved1=reserved1,
-            reserved2=reserved2,
-            reserved3=reserved3,
-        )
-
-    def to_bytes(self) -> bytes:
-        return self.message_struct.pack(
-            self.message_id,
-            self.data_length,
-            self.destination_serialization,
-            self.source,
-            self.chan_ident_1,
-            self.position,
-            self.velocity,
-            round(self.motor_current.to(pnpq_ureg.milliamp).magnitude),
-            self.status.to_bits(),
-            self.chan_ident_2,
-            self.reserved1,
-            self.reserved2,
-            self.reserved3,
-        )
-
-
-@dataclass(frozen=True, kw_only=True)
 class AptMessageWithDataVelParams(AptMessageWithData):
     # Used in MGMSG_MOT_SET_VELPARAMS, MGMSG_MOT_GET_VELPARAMS
     data_length: ClassVar[int] = 14
@@ -1452,8 +1368,6 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
             return AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES.from_bytes(raw)
         if length == 20:
             return AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES.from_bytes(raw)
-        if length == 34:
-            return AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES.from_bytes(raw)
         raise ValueError(
             f"Expected data packet length 6 or 20 or 34, but received {length} instead. Full raw data was {raw!r}"
         )
@@ -1485,22 +1399,6 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
     data_length: ClassVar[int] = 14
-
-    @classmethod
-    def from_bytes(cls, raw: bytes) -> Self:
-        return super().from_bytes(raw)
-
-
-@dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES(
-    AptMessageWithDataMotorStatus_34_BYTES, AptMessage_MGMSG_MOT_MOVE_COMPLETED
-):
-    """
-    For new version message with full 34 bytes including reserved fields.
-    """
-
-    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
-    data_length: ClassVar[int] = 28
 
     @classmethod
     def from_bytes(cls, raw: bytes) -> Self:
@@ -1620,8 +1518,6 @@ class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessage):
             return AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES.from_bytes(raw)
         if length == 20:
             return AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES.from_bytes(raw)
-        if length == 34:
-            return AptMessage_MGMSG_MOT_MOVE_STOPPED_34_BYTES.from_bytes(raw)
         raise ValueError(
             f"Expected data packet length 6 or 20 or 34, but received {length} instead. Full raw data was {raw!r}"
         )
@@ -1653,22 +1549,6 @@ class AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES(
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_STOPPED
     data_length: ClassVar[int] = 14
-
-    @classmethod
-    def from_bytes(cls, raw: bytes) -> Self:
-        return super().from_bytes(raw)
-
-
-@dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_MOVE_STOPPED_34_BYTES(
-    AptMessageWithDataMotorStatus_34_BYTES, AptMessage_MGMSG_MOT_MOVE_STOPPED
-):
-    """
-    For CR2 message with full 34 bytes including reserved fields.
-    """
-
-    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_STOPPED
-    data_length: ClassVar[int] = 28
 
     @classmethod
     def from_bytes(cls, raw: bytes) -> Self:

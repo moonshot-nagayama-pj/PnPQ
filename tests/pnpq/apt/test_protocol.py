@@ -26,7 +26,6 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_COMPLETED,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
-    AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_MOVE_JOG,
@@ -34,7 +33,6 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_STOPPED,
     AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES,
     AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES,
-    AptMessage_MGMSG_MOT_MOVE_STOPPED_34_BYTES,
     AptMessage_MGMSG_MOT_REQ_HOMEPARAMS,
     AptMessage_MGMSG_MOT_REQ_JOGPARAMS,
     AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
@@ -356,7 +354,7 @@ def test_AptMessage_MGMSG_MOT_STATUSUPDATE_from_34_bytes() -> None:
 def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_bytes_to_bytes() -> None:
     """
     The extra fields correspond to the additional reserved/unused words and longs
-    found in newer APT firmware versions.
+    that will be use by K10CR2.
     """
     msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES(
         destination=Address.HOST_CONTROLLER,
@@ -553,41 +551,6 @@ def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES_to_bytes() -> None:
     )
     assert msg.to_bytes() == bytes.fromhex(
         "6404 0e00 81 50 0100 68aaa001 0000 0000 30000080"
-    )
-
-
-def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES_from_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES.from_bytes(
-        bytes.fromhex(
-            "6404 1c00 81 50 0100 68aaa001 0000 0000 30000080 0100 00000000 00000000 00000000"
-        )
-    )
-    assert msg.message_id == 0x0464
-    assert msg.chan_ident_1 == 0x01
-    assert msg.chan_ident_2 == 0x01
-    assert msg.destination == 0x01
-    assert msg.source == 0x50
-    assert msg.position == 0x01A0AA68
-    assert msg.velocity == 0x00
-    assert msg.status == UStatus(INMOTIONCCW=True, INMOTIONCW=True, ENABLED=True)
-
-
-def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES_to_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_MOVE_COMPLETED_34_BYTES(
-        chan_ident_1=ChanIdent.CHANNEL_1,
-        chan_ident_2=ChanIdent.CHANNEL_1,
-        destination=Address.HOST_CONTROLLER,
-        source=Address.GENERIC_USB,
-        position=0x01A0AA68,
-        velocity=0x00,
-        motor_current=0 * pnpq_ureg.milliamp,
-        status=UStatus(INMOTIONCCW=True, INMOTIONCW=True, ENABLED=True),
-        reserved1=0x00000000,
-        reserved2=0x00000000,
-        reserved3=0x00000000,
-    )
-    assert msg.to_bytes() == bytes.fromhex(
-        "6404 1c00 81 50 0100 68aaa001 0000 0000 30000080 0100 00000000 00000000 00000000"
     )
 
 
@@ -805,42 +768,6 @@ def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES_to_bytes() -> None:
     )
     assert msg.to_bytes() == bytes.fromhex(
         "6604 0e00 81 50 0100 68aaa001 0000 0000 30000080"
-    )
-
-
-def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_34_BYTES_from_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED_34_BYTES.from_bytes(
-        bytes.fromhex(
-            "6604 1c00 81 50 0100 68aaa001 0000 0000 30000080 0100 00000000 00000000 00000000"
-        )
-    )
-    assert msg.message_id == 0x0466
-    assert msg.chan_ident_1 == 0x01
-    assert msg.chan_ident_2 == 0x01
-    assert msg.destination == 0x01
-    assert msg.source == 0x50
-    assert msg.position == 0x01A0AA68
-    assert msg.velocity == 0x00
-    assert msg.status == UStatus(INMOTIONCCW=True, INMOTIONCW=True, ENABLED=True)
-
-
-def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_34_BYTES_to_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED_34_BYTES(
-        chan_ident_1=ChanIdent.CHANNEL_1,
-        chan_ident_2=ChanIdent.CHANNEL_1,
-        destination=Address.HOST_CONTROLLER,
-        source=Address.GENERIC_USB,
-        position=0x01A0AA68,
-        velocity=0x00,
-        motor_current=0 * pnpq_ureg.milliamp,
-        status=UStatus(INMOTIONCCW=True, INMOTIONCW=True, ENABLED=True),
-        reserved1=0x00000000,
-        reserved2=0x00000000,
-        reserved3=0x00000000,
-    )
-
-    assert msg.to_bytes() == bytes.fromhex(
-        "6604 1c00 81 50 0100 68aaa001 0000 0000 30000080 0100 00000000 00000000 00000000"  # Temporarily Fix
     )
 
 
