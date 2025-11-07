@@ -1370,7 +1370,7 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
         if length == 20:
             return AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES.from_bytes(raw)
         raise ValueError(
-            f"Expected data packet length 6 or 20 or 34, but received {length} instead. Full raw data was {raw!r}"
+            f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
         )
 
 
@@ -1520,7 +1520,7 @@ class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessage):
         if length == 20:
             return AptMessage_MGMSG_MOT_MOVE_STOPPED_20_BYTES.from_bytes(raw)
         raise ValueError(
-            f"Expected data packet length 6 or 20 or 34, but received {length} instead. Full raw data was {raw!r}"
+            f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
         )
 
 

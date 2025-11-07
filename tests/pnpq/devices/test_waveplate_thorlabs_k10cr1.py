@@ -34,7 +34,7 @@ from pnpq.devices.waveplate_thorlabs_k10cr1 import (
 from pnpq.errors import InvalidStateException
 from pnpq.units import pnpq_ureg
 
-ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES(
+status_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES(
     chan_ident=ChanIdent(1),
     destination=Address.HOST_CONTROLLER,
     source=Address.GENERIC_USB,
@@ -42,7 +42,7 @@ ustatus_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES(
     position=0,
     status=Status(INMOTIONCCW=True, INMOTIONCW=True, HOMED=True),
 )
-ustatus_message_34 = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES(
+status_message_34 = AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_BYTES(
     chan_ident_1=ChanIdent(1),
     chan_ident_2=ChanIdent(2),
     destination=Address.HOST_CONTROLLER,
@@ -87,7 +87,7 @@ def test_move_absolute(mock_connection: Mock) -> None:
     ):  # Only used to check for 20 byte status messages
 
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
-            return ustatus_message
+            return status_message
 
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_ABSOLUTE):
 
@@ -139,7 +139,7 @@ def test_jog(mock_connection: Mock) -> None:
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage | None:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
-            return ustatus_message
+            return status_message
 
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_JOG):
 
@@ -190,7 +190,7 @@ def test_set_velparams(mock_connection: Mock) -> None:
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
-            return ustatus_message
+            return status_message
 
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_VELPARAMS):
 
@@ -253,7 +253,7 @@ def test_get_velparams(mock_connection: Mock) -> None:
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
-            return ustatus_message
+            return status_message
 
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_VELPARAMS):
 
@@ -311,7 +311,7 @@ def test_set_jogparams(mock_connection: Mock) -> None:
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
-            return ustatus_message
+            return status_message
 
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_JOGPARAMS):
 
@@ -382,7 +382,7 @@ def test_get_jogparams(mock_connection: Mock) -> None:
         sent_message: AptMessage, match_reply_callback: Callable[[AptMessage], bool]
     ) -> AptMessage:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_STATUSUPDATE):
-            return ustatus_message
+            return status_message
 
         if isinstance(sent_message, AptMessage_MGMSG_MOT_REQ_JOGPARAMS):
 

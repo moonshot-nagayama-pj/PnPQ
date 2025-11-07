@@ -369,7 +369,7 @@ def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_34_bytes_to_bytes() -> None:
         reserved3=0x00000000,
     )
     assert msg.to_bytes() == bytes.fromhex(
-        "8104 1c00 81 22 0100 01000000 00000000 07000000 0100 00000000 00000000 00000000"  # Temporarily Fix
+        "8104 1c00 81 22 0100 01000000 00000000 07000000 0100 00000000 00000000 00000000"
     )
 
 
