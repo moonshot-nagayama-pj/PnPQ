@@ -101,8 +101,8 @@ stdmsg "Removing '.dev0' from version in pyproject.toml..."
 uv version "${updated_version}"
 
 stdmsg "Updating smv_latest_version in the Sphinx config..."
-sed "s/smv_latest_version.*=.*'v.*'/smv_latest_version = 'v${updated_version}'/" "${base_dir}"/sphinx/source/conf.py >"${temp_sphinx_conf}"
-mv "${temp_sphinx_conf}" "${base_dir}"/sphinx/source/conf.py
+sed "s/smv_latest_version.*=.*'v.*'/smv_latest_version = 'v${updated_version}'/" "${project_dir}"/sphinx/source/conf.py >"${temp_sphinx_conf}"
+mv "${temp_sphinx_conf}" "${project_dir}"/sphinx/source/conf.py
 
 stdmsg "Releasing version: ${updated_version}"
 
