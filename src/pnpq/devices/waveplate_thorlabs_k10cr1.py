@@ -413,8 +413,7 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
             lambda message: (
                 isinstance(message, AptMessage_MGMSG_MOT_GET_JOGPARAMS)
                 and message.chan_ident == self._chan_ident
-                and message.destination == Address.HOST_CONTROLLER
-                and message.source == Address.GENERIC_USB
+                # Do not test for destination/source here. The K10CR2 appears to send a malformed destination/source pair for this message where the destination is 0 and the source is GENERIC_USB.
             ),
         )
 

@@ -84,6 +84,7 @@ class Address(int, Enum):
     GENERIC_USB = 0x50
     HOST_CONTROLLER = 0x01
     RACK_CONTROLLER = 0x11
+    ZERO = 0x00  # found in MGMSG_MOT_GET_JOGPARAMS on the K10CR2 for some reason
 
 
 @enum.unique
