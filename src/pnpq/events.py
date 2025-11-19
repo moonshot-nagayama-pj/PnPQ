@@ -6,13 +6,14 @@ from enum import StrEnum, auto
 class Event(StrEnum):
     APT_CONNECTION_ERROR = auto()
     APT_POLLER_EXIT = auto()
+    EXPECTED_EXCEPTION = auto()
     RX_MESSAGE_KNOWN = auto()
     RX_MESSAGE_UNKNOWN = auto()
     TX_MESSAGE_ORDERED = auto()
     TX_MESSAGE_ORDERED_EXPECT_REPLY = auto()
     TX_MESSAGE_ORDERED_NO_REPLY = auto()
     TX_MESSAGE_UNORDERED = auto()
-    UNCAUGHT_EXCEPTION = auto()
+    UNEXPECTED_EXCEPTION = auto()
 
     # Common events used by most device types
     DEVICE_CONNECTED = auto()

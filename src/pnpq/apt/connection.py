@@ -3,7 +3,7 @@ import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from queue import Empty, Queue, SimpleQueue
+from queue import Empty, Queue, ShutDown, SimpleQueue
 from types import TracebackType
 from typing import Callable, Iterator, Optional, Self
 
@@ -439,8 +439,21 @@ class AptConnection(AbstractAptConnection):
             with self._rx_lock:
                 while self._fail_if_closed():
                     self._rx_dispatcher_internal_loop()
-        except BaseException as e:  # pylint: disable=W0718
-            self._close_exception_queue.put(e)
+        except (InvalidStateException, ShutDown) as expected:
+            # These are expected exceptions resulting from connection shutdown, log them at debug just in case they are needed for tracing
+            self.log.debug(
+                event=Event.EXPECTED_EXCEPTION,
+                location="rx_dispatcher",
+                exc_info=expected,
+            )
+        except BaseException as unexpected:  # pylint: disable=W0718
+            self.log.error(
+                event=Event.UNEXPECTED_EXCEPTION,
+                location="rx_dispatcher",
+                exc_info=unexpected,
+            )
+            self._close_exception_queue.put(unexpected)
+        finally:
             self._shutdown_threads()
 
     def _rx_dispatcher_internal_loop(self) -> None:
@@ -497,8 +510,21 @@ class AptConnection(AbstractAptConnection):
         try:
             while self._fail_if_closed():
                 self._tx_ordered_send_internal_loop()
-        except BaseException as e:  # pylint: disable=W0718
-            self._close_exception_queue.put(e)
+        except (InvalidStateException, ShutDown) as expected:
+            # These are expected exceptions resulting from connection shutdown, log them at debug just in case they are needed for tracing
+            self.log.debug(
+                event=Event.EXPECTED_EXCEPTION,
+                location="tx_ordered_send",
+                exc_info=expected,
+            )
+        except BaseException as unexpected:  # pylint: disable=W0718
+            self.log.error(
+                event=Event.UNEXPECTED_EXCEPTION,
+                location="tx_ordered_send",
+                exc_info=unexpected,
+            )
+            self._close_exception_queue.put(unexpected)
+        finally:
             self._shutdown_threads()
 
     def _tx_ordered_send_internal_loop(self) -> None:
