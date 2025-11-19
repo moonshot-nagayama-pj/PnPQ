@@ -556,7 +556,7 @@ class AptConnection(AbstractAptConnection):
         # message. This is a little tricky to coordinate in
         # the current architecture.
         with (
-            timeout(300) as check_timeout,
+            timeout(360) as check_timeout,
             self.subscribe() as receive_queue,
         ):
             with self._tx_lock:
@@ -574,7 +574,10 @@ class AptConnection(AbstractAptConnection):
             # block the sending of all messages for a short period of
             # time out of an abundance of caution.
             while check_timeout():
-                message = receive_queue.get(timeout=300)
+                try:
+                    message = receive_queue.get(timeout=1)
+                except Empty:
+                    continue
                 if match_reply(message):
                     reply_queue.put(message)
                     receive_queue.task_done()
