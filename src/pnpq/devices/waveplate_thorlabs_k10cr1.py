@@ -324,7 +324,16 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
         time.sleep(5)  # Allow time for the identify command to complete
 
     def move_absolute(self, position: Quantity) -> None:
-        absolute_distance = round(position.to("k10cr1_step").magnitude)
+        absolute_distance = round(position.to(pnpq_ureg.k10cr1_step).magnitude)
+
+        # The motor will sometimes stop a small distance away from the desired position. However, if we consider any MOVE_COMPLETED message to indicate success without checking that we are at our desired position, we could produce misleading results. Therefore, we need to be able to fuzzy match on the position.
+        absolute_distance_lower_bound = round(
+            (position.to(pnpq_ureg.degree) - 0.1).to(pnpq_ureg.k10cr1_step).magnitude
+        )
+        absolute_distance_upper_bound = round(
+            (position.to(pnpq_ureg.degree) + 0.1).to(pnpq_ureg.k10cr1_step).magnitude
+        )
+
         self.set_channel_enabled(True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
@@ -340,7 +349,8 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 (
                     isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
                     and message.chan_ident == self._chan_ident
-                    and message.position == absolute_distance
+                    and message.position > absolute_distance_lower_bound
+                    and message.position < absolute_distance_upper_bound
                     and message.destination == Address.HOST_CONTROLLER
                     and message.source == Address.GENERIC_USB
                 )

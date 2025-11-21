@@ -17,7 +17,7 @@ def excepthook(
     e: BaseException,
     traceback: TracebackType | None,
 ) -> Any:
-    log.error(event=Event.UNCAUGHT_EXCEPTION, exc_info=e)
+    log.error(event=Event.UNEXPECTED_EXCEPTION, location="excepthook", exc_info=e)
     return sys.__excepthook__(exception_type, e, traceback)
 
 
@@ -28,7 +28,11 @@ original_threading_excepthook = threading.excepthook
 
 
 def threading_excepthook(args: Any) -> Any:
-    log.error(event=Event.UNCAUGHT_EXCEPTION, exc_info=args.exc_value)
+    log.error(
+        event=Event.UNEXPECTED_EXCEPTION,
+        location="threading_excepthook",
+        exc_info=args.exc_value,
+    )
     return original_threading_excepthook(args)
 
 

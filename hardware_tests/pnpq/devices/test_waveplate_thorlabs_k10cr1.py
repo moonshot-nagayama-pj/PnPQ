@@ -17,7 +17,7 @@ from pnpq.units import pnpq_ureg
 
 log = structlog.get_logger()
 
-SERIAL_NUMBER = "55409764"
+SERIAL_NUMBER = "55528654"
 
 
 def test_connection() -> None:
@@ -50,6 +50,8 @@ def device_fixture() -> Generator[WaveplateThorlabsK10CR1]:
 def test_move_absolute(device: WaveplateThorlabsK10CR1) -> None:
     device.move_absolute(0 * pnpq_ureg.degree)
     device.move_absolute(24575940 * pnpq_ureg.k10cr1_steps)
+    device.move_absolute(179 * pnpq_ureg.degree)
+    device.move_absolute(0 * pnpq_ureg.degree)
 
 
 def test_identify(device: WaveplateThorlabsK10CR1) -> None:
