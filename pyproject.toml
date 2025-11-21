@@ -1,6 +1,6 @@
 [project]
 name = "pnpq"
-version = "0.2.1.dev0"
+version = "0.2.1"
 dependencies = [
     "pyserial>=3.5",
     "types-pyserial>=3.5.0.20240826",
