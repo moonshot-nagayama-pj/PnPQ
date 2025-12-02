@@ -17,6 +17,7 @@ authors:
   - given-names: Tom
     family-names: Shen
     orcid: "https://orcid.org/0009-0000-1747-1050"
+doi: 10.5281/zenodo.16886214
 identifiers:
   - type: doi
     value: 10.5281/zenodo.16886214
