@@ -250,3 +250,36 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
     def _fail_if_closed(self) -> None:
         if (not self._opened_event.is_set()) or self._closed_event.is_set():
             raise InvalidStateException("Tried to use a closed switch object.")
+class ThorlabsOswError(Exception):
+    """Raised when a Thorlabs OSWxx-yyyyE optical switch reports an error
+    or sends an invalid/unexpected response.
+
+    Attributes
+    ----------
+    code : int | None
+        The numeric error code from the device (e.g. 1, 3, 11), or None if
+        the reply could not be parsed.
+        The codes correspond to the Thorlabs manual, e.g.:
+          01: A general system error occurred
+          02: A math domain error was detected
+          03: The given value is out of range
+          06: Non-volatile memory error
+          10: A communication error occurred
+          11: The command is unknown
+          12: Wrong number of command parameters
+          13: The command parameter is invalid
+    raw_reply : str
+        The raw reply line from the device.
+    """
+
+    def __init__(self, code, description: str, raw_reply: str) -> None:
+        self.code = code
+        self.description = description
+        self.raw_reply = raw_reply
+
+        if isinstance(code, int):
+            code_str = f"{code:02d}"
+        else:
+            code_str = "Unknown Code"
+
+        super().__init__(f"Thorlabs OSW error {code_str}: {description}\nRaw reply: {raw_reply}")
