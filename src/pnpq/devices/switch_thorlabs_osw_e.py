@@ -9,7 +9,11 @@ import serial
 import serial.tools.list_ports
 from serial import Serial
 
-from pnpq.errors import InvalidStateException, ThorlabsOswError, parse_thorlabs_osw_error
+from pnpq.errors import (
+    InvalidStateException,
+    ThorlabsOswError,
+    parse_thorlabs_osw_error,
+)
 
 from .utils import timeout
 
@@ -306,13 +310,13 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
 
         # Decode to inspect for "Error.." messages
         try:
-            text = decoding_messages.decode("utf-8") # still thinking about ascii or utf-8 ?
-        except UnicodeDecodeError:
+            text = decoding_messages.decode("utf-8")
+        except UnicodeDecodeError as e:
             raise ThorlabsOswError(
                 code=None,
                 description="Received non-decodable response from Thorlabs OSW device.",
                 raw_reply=response.decode("utf-8", errors="replace"),
-            )
+            ) from e
         stripped_text = text.strip()
         if stripped_text.lower().startswith("error"):
             raise parse_thorlabs_osw_error(stripped_text)

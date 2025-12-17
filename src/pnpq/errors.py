@@ -1,5 +1,6 @@
 from typing import Optional
 
+
 class DeviceDisconnectedError(Exception):
     """Exception raised for the device is disconnected"""
 
@@ -85,7 +86,9 @@ class ThorlabsOswError(Exception):
         self.raw_reply: str = raw_reply
 
         code_str = f"{code:02d}" if isinstance(code, int) else "Unknown"
-        message = f"Thorlabs OSW error {code_str}: {description}\nRaw reply: {raw_reply}"
+        message = (
+            f"Thorlabs OSW error {code_str}: {description}\nRaw reply: {raw_reply}"
+        )
         super().__init__(message)
 
 
