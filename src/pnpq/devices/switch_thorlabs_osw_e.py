@@ -299,7 +299,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
                 description="No response received from Thorlabs OSW device.",
                 raw_reply="",
             )
-        if response.endswith(b"r\n"):
+        if response.endswith(b"\r\n"):
             decoding_messages = response[:-2]
         else:
             decoding_messages = response
