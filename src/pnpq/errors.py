@@ -63,6 +63,8 @@ class InvalidStateException(Exception):
     re-open them.
 
     """
+
+
 class ThorlabsOswError(Exception):
     """Raised when a Thorlabs OSWxx-yyyyE optical switch reports an error
     or sends an invalid/unexpected response.
@@ -95,4 +97,58 @@ class ThorlabsOswError(Exception):
         else:
             code_str = "Unknown Code"
 
-        super().__init__(f"Thorlabs OSW error {code_str}: {description}\nRaw reply: {raw_reply}")
+        super().__init__(
+            f"Thorlabs OSW error {code_str}: {description}\nRaw reply: {raw_reply}"
+        )
+
+
+def parse_thorlabs_osw_error(line: str) -> "ThorlabsOswError":
+        """Parse an error reply line from a Thorlabs OSWxx-yyyyE device.
+        The manual says the format is:
+            "Error nn,Descriptive text"
+        """
+        raw = line.strip()
+        lower = raw.lower()
+
+        # If not starting with "error", identify as unparseable
+        if not lower.startswith("error "):
+            return ThorlabsOswError(
+                code=None,
+                description="Reply does not start with 'Error '",
+                raw_reply=raw,
+            )
+        # Remove the space and the "Error" prefix, imply a safer way to parse
+        strip = raw[len("Error ") :].strip()
+        if not strip:
+            return ThorlabsOswError(
+                code=None,
+                description="No content after 'Error ' prefix",
+                raw_reply=raw,
+            )
+        # Expect something like "nn,Descriptive text" or "nn Descriptive text"
+        seperater = len(strip)
+        for ch in (",", " "):
+            idx = strip.find(ch)
+            if idx != -1 and idx < seperater:
+                seperater = idx
+        # Seperate code and description
+        code_part = strip[:seperater].strip()
+        description_part = strip[seperater:].lstrip(", ").strip()
+
+        try:
+            code_part = int(code_part)
+        except ValueError:
+            return ThorlabsOswError(
+                code=None,
+                description="Could not parse error code as integer",
+                raw_reply=raw,
+            )
+
+        description = (
+            description_part if description_part else "No description provided"
+        )
+        return ThorlabsOswError(
+            code=code_part,
+            description=description,
+            raw_reply=raw,
+        )
