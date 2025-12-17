@@ -1,3 +1,5 @@
+from typing import Optional
+
 class DeviceDisconnectedError(Exception):
     """Exception raised for the device is disconnected"""
 
@@ -66,89 +68,78 @@ class InvalidStateException(Exception):
 
 
 class ThorlabsOswError(Exception):
-    """Raised when a Thorlabs OSWxx-yyyyE optical switch reports an error
-    or sends an invalid/unexpected response.
+    """Exception raised for errors reported by Thorlabs OSWxx-yyyyE devices.
 
-    Attributes
-    ----------
-    code : int | None
-        The numeric error code from the device (e.g. 1, 3, 11), or None if
-        the reply could not be parsed.
-        The codes correspond to the Thorlabs manual, e.g.:
-          01: A general system error occurred
-          02: A math domain error was detected
-          03: The given value is out of range
-          06: Non-volatile memory error
-          10: A communication error occurred
-          11: The command is unknown
-          12: Wrong number of command parameters
-          13: The command parameter is invalid
-    raw_reply : str
-        The raw reply line from the device.
+    The instance provides three attributes: ``code`` (int or None),
+    ``description`` (str), and ``raw_reply`` (str).
     """
 
-    def __init__(self, code, description: str, raw_reply: str) -> None:
-        self.code = code
-        self.description = description
-        self.raw_reply = raw_reply
+    def __init__(
+        self,
+        code: Optional[int],
+        description: str,
+        raw_reply: str,
+    ) -> None:
+        self.code: Optional[int] = code
+        self.description: str = description
+        self.raw_reply: str = raw_reply
 
-        if isinstance(code, int):
-            code_str = f"{code:02d}"
-        else:
-            code_str = "Unknown Code"
-
-        super().__init__(
-            f"Thorlabs OSW error {code_str}: {description}\nRaw reply: {raw_reply}"
-        )
+        code_str = f"{code:02d}" if isinstance(code, int) else "Unknown"
+        message = f"Thorlabs OSW error {code_str}: {description}\nRaw reply: {raw_reply}"
+        super().__init__(message)
 
 
-def parse_thorlabs_osw_error(line: str) -> "ThorlabsOswError":
-        """Parse an error reply line from a Thorlabs OSWxx-yyyyE device.
-        The manual says the format is:
-            "Error nn,Descriptive text"
-        """
-        raw = line.strip()
-        lower = raw.lower()
+def parse_thorlabs_osw_error(line: str) -> ThorlabsOswError:
+    """Parse a reply line into a :class:`ThorlabsOswError`.
 
-        # If not starting with "error", identify as unparseable
-        if not lower.startswith("error "):
-            return ThorlabsOswError(
-                code=None,
-                description="Reply does not start with 'Error '",
-                raw_reply=raw,
-            )
-        # Remove the space and the "Error" prefix, imply a safer way to parse
-        strip = raw[len("Error ") :].strip()
-        if not strip:
-            return ThorlabsOswError(
-                code=None,
-                description="No content after 'Error ' prefix",
-                raw_reply=raw,
-            )
-        # Expect something like "nn,Descriptive text" or "nn Descriptive text"
-        seperater = len(strip)
-        for ch in (",", " "):
-            idx = strip.find(ch)
-            if idx != -1 and idx < seperater:
-                seperater = idx
-        # Seperate code and description
-        code_part = strip[:seperater].strip()
-        description_part = strip[seperater:].lstrip(", ").strip()
+    The device normally uses replies of the form ``Error nn,Descriptive text``.
+    This function is defensive and still returns an error object for
+    malformed lines.
+    """
+    raw = line.strip()
+    lower = raw.lower()
 
-        try:
-            code_part = int(code_part)
-        except ValueError:
-            return ThorlabsOswError(
-                code=None,
-                description="Could not parse error code as integer",
-                raw_reply=raw,
-            )
-
-        description = (
-            description_part if description_part else "No description provided"
-        )
+    # Treat anything that does not start with "error" as an error,
+    # mark it as an unexpected format.
+    if not lower.startswith("error"):
         return ThorlabsOswError(
-            code=code_part,
-            description=description,
+            code=None,
+            description="Reply does not start with 'Error'.",
             raw_reply=raw,
         )
+
+    # Strip off the "Error" prefix (case-insensitive check above) and
+    # any following whitespace.
+    rest = raw[len("Error") :].lstrip()
+    if not rest:
+        return ThorlabsOswError(
+            code=None,
+            description="No content after 'Error' prefix.",
+            raw_reply=raw,
+        )
+
+    # Expect something like "nn,Descriptive text" or "nn Descriptive text"
+    separator = len(rest)
+    for ch in (",", " "):
+        idx = rest.find(ch)
+        if idx != -1 and idx < separator:
+            separator = idx
+
+    code_token = rest[:separator].strip()
+    description_part = rest[separator:].lstrip(", ").strip()
+
+    try:
+        code = int(code_token)
+    except ValueError:
+        return ThorlabsOswError(
+            code=None,
+            description="Could not parse error code as integer.",
+            raw_reply=raw,
+        )
+
+    description = description_part or "No description provided."
+    return ThorlabsOswError(
+        code=code,
+        description=description,
+        raw_reply=raw,
+    )
