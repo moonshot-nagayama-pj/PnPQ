@@ -28,6 +28,10 @@ class AbstractOpticalSwitchThorlabsE(ABC):
         This function is idempotent; if the switch is already in the desired state, setting it to the same state again will not cause an error.
 
         :param state: The state to set the switch to.
+
+        :raises InvalidStateException: If the switch object is closed.
+        :raises ThorlabsOswError: If the device reports an error or return
+            an unexpected reply while setting or checking the state.
         """
 
     @abstractmethod
@@ -35,6 +39,9 @@ class AbstractOpticalSwitchThorlabsE(ABC):
         """Get the current state of the switch.
 
         :return: The current state of the switch.
+        :raises InvalidStateException: If the switch object is closed.
+        :raises ThorlabsOswError: If the device reports an error or return
+            an unexpected reply while setting or checking the state.
         """
 
     # Get system information
@@ -213,27 +220,64 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
             return self._get_state()
 
     def _get_state(self) -> State:
-        """Private method to get the status of the switch without locks. This is used to check the status during set_state."""
+        """Private method to get the status of the switch without locks. This is used to check the status during set_state.
+
+        :raises ThorlabsOswError: If the device reports an error or sends an unexpected reply that cannot be parsed as a valid state.
+        """
         command = b"S?\n"
         self._connection.write(command)
         response = self._read_serial_response()
-        return State(int(response.decode("utf-8")))
+        try:
+            value_str = response.decode("utf-8")
+            value_int = int(value_str)
+            return State(value_int)
+        except Exception as e:
+            # This help to catch decoding erros and integer issues
+            raise ThorlabsOswError(
+                code=None,
+                description="Received invalid state response from Thorlabs OSW device.",
+                raw_reply=response.decode("utf-8", errors="replace"),
+            ) from e
 
     def get_type_code(self) -> str:
+        """
+        Get the board type code according to the configuration table.
+        :return: The type code as a human-readable, unstructured string.
+        :raises: ThorlabsOswError: If the device reports an error or sends an unexpected reply.
+        """
         self._fail_if_closed()
         with self._communication_lock:
             command = b"T?\n"
             self._connection.write(command)
             response = self._read_serial_response()
-            return response.decode("utf-8")
+            try:
+                return response.decode("utf-8")
+            except UnicodeDecodeError as e:
+                raise ThorlabsOswError(
+                    code=None,
+                    description="Received non-decodable type code from Thorlabs OSW device.",
+                    raw_reply=response.decode("utf-8", errors="replace"),
+                ) from e
 
     def get_board_name(self) -> str:
+        """
+        Get the switch name and firmware version.
+        :return: human-readable, unstructured string.
+        :raises: ThorlabsOswError: If the device reports an error or sends an unexpected reply.
+        """
         self._fail_if_closed()
         with self._communication_lock:
             command = b"I?\n"
             self._connection.write(command)
             response = self._read_serial_response()
-            return response.decode("utf-8")
+            try:
+                return response.decode("utf-8")
+            except UnicodeDecodeError as e:
+                raise ThorlabsOswError(
+                    code=None,
+                    description="Received non-decodable board name from Thorlabs OSW device.",
+                    raw_reply=response.decode("utf-8", errors="replace"),
+                ) from e
 
     def _read_serial_response(self) -> bytes:
         """Read a response from the serial connection.
