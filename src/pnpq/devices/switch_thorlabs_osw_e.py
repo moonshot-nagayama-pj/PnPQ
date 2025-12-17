@@ -9,7 +9,7 @@ import serial
 import serial.tools.list_ports
 from serial import Serial
 
-from pnpq.errors import InvalidStateException
+from pnpq.errors import InvalidStateException, ThorlabsOswError, parse_thorlabs_osw_error
 
 from .utils import timeout
 
@@ -236,9 +236,43 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
             return response.decode("utf-8")
 
     def _read_serial_response(self) -> bytes:
-        """Read a response from the serial connection."""
-        response = self._connection.read_until(b"\r\n")[:-2]  # Remove the trailing \r\n
-        return response
+        """Read a response from the serial connection.
+
+        All error that report from the device will translate into 'ThorlabsOswError' exceptions.
+        """
+        try:
+            response = self._connection.read_until(b"\r\n")
+        except Exception as e:
+            raise ThorlabsOswError(
+                code=None,
+                description="Failed to read response from Thorlabs OSW device.",
+                raw_reply="",
+            ) from e
+
+        if not response:
+            raise ThorlabsOswError(
+                code=None,
+                description="No response received from Thorlabs OSW device.",
+                raw_reply="",
+            )
+        if response.endswith(b"r\n"):
+            decoding_messages = response[:-2]
+        else:
+            decoding_messages = response
+
+        # Decode to inspect for "Error.." messages
+        try:
+            text = decoding_messages.decode("utf-8") # still thinking about ascii or utf-8 ?
+        except UnicodeDecodeError:
+            raise ThorlabsOswError(
+                code=None,
+                description="Received non-decodable response from Thorlabs OSW device.",
+                raw_reply=response.decode("utf-8", errors="replace"),
+            )
+        stripped_text = text.strip()
+        if stripped_text.lower().startswith("error"):
+            raise parse_thorlabs_osw_error(stripped_text)
+        return decoding_messages
 
     def _clean_buffer(self) -> None:
         time.sleep(0.5)
@@ -250,36 +284,3 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
     def _fail_if_closed(self) -> None:
         if (not self._opened_event.is_set()) or self._closed_event.is_set():
             raise InvalidStateException("Tried to use a closed switch object.")
-class ThorlabsOswError(Exception):
-    """Raised when a Thorlabs OSWxx-yyyyE optical switch reports an error
-    or sends an invalid/unexpected response.
-
-    Attributes
-    ----------
-    code : int | None
-        The numeric error code from the device (e.g. 1, 3, 11), or None if
-        the reply could not be parsed.
-        The codes correspond to the Thorlabs manual, e.g.:
-          01: A general system error occurred
-          02: A math domain error was detected
-          03: The given value is out of range
-          06: Non-volatile memory error
-          10: A communication error occurred
-          11: The command is unknown
-          12: Wrong number of command parameters
-          13: The command parameter is invalid
-    raw_reply : str
-        The raw reply line from the device.
-    """
-
-    def __init__(self, code, description: str, raw_reply: str) -> None:
-        self.code = code
-        self.description = description
-        self.raw_reply = raw_reply
-
-        if isinstance(code, int):
-            code_str = f"{code:02d}"
-        else:
-            code_str = "Unknown Code"
-
-        super().__init__(f"Thorlabs OSW error {code_str}: {description}\nRaw reply: {raw_reply}")
