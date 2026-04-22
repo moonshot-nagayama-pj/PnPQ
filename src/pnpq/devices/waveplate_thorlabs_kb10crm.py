@@ -66,7 +66,7 @@ class Waveplate:
 
         self.resolution = 136533
         self.max_steps = 136533
-        self.rotate_timeout = 30
+        self.rotate_timeout = 120
         self.home_timeout = 120
         self.max_channel = 1
         self.auto_update = False
