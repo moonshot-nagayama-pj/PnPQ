@@ -66,8 +66,8 @@ class Waveplate:
 
         self.resolution = 136533
         self.max_steps = 136533
-        self.rotate_timeout = 30
-        self.home_timeout = 30
+        self.rotate_timeout = 120
+        self.home_timeout = 120
         self.max_channel = 1
         self.auto_update = False
         self.hub_connected = check_usb_hub_connected()
@@ -152,7 +152,7 @@ class Waveplate:
         self.conn.write(HOME_MOVE_COMMAND)
         time.sleep(0.5)
 
-        result = self.__wait_for_reply(b"\x44\x04", 20)
+        result = self.__wait_for_reply(b"\x44\x04", self.home_timeout)
         self.logger.debug("home result: %s", result)
         if result is None:
             self.logger.error("home command is not completed")
