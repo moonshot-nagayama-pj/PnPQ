@@ -1,4 +1,4 @@
-from typing import Callable, Generator
+from collections.abc import Callable, Generator
 from unittest.mock import Mock, create_autospec
 
 import pytest

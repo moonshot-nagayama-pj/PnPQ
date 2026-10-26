@@ -32,7 +32,7 @@ class OpticalSwitchThorlabsEStub(AbstractOpticalSwitchThorlabsE):
         self._fail_if_not_open()
         self._is_open = False
 
-    def __enter__(self) -> "AbstractOpticalSwitchThorlabsE":
+    def __enter__(self) -> AbstractOpticalSwitchThorlabsE:
         self.open()
         return self
 

@@ -61,7 +61,7 @@ class AbstractOpticalSwitchThorlabsE(ABC):
         """
 
     @abstractmethod
-    def __enter__(self) -> "AbstractOpticalSwitchThorlabsE":
+    def __enter__(self) -> AbstractOpticalSwitchThorlabsE:
         pass
 
     @abstractmethod
@@ -121,7 +121,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
     _opened_event: Event = field(default_factory=Event, init=False)
     _closed_event: Event = field(default_factory=Event, init=False)
 
-    def __enter__(self) -> "AbstractOpticalSwitchThorlabsE":
+    def __enter__(self) -> AbstractOpticalSwitchThorlabsE:
         self.open()
         return self
 
@@ -199,7 +199,7 @@ class OpticalSwitchThorlabsE(AbstractOpticalSwitchThorlabsE):
         self._fail_if_closed()
         with self._communication_lock, timeout(3) as check_timeout:
             # Generate command from the state's enum value
-            command = f"S {state.value}\n".encode("utf-8")
+            command = f"S {state.value}\n".encode()
             self._connection.write(command)
 
             while check_timeout():

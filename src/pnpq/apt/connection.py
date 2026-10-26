@@ -1,11 +1,12 @@
 import threading
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from queue import Empty, Queue, ShutDown, SimpleQueue
 from types import TracebackType
-from typing import Callable, Iterator, Optional, Self
+from typing import Self
 
 import serial.tools.list_ports
 import structlog
@@ -29,7 +30,7 @@ from .protocol import (
 
 class AbstractAptConnection(ABC):
     @abstractmethod
-    def __enter__(self) -> "AbstractAptConnection":
+    def __enter__(self) -> AbstractAptConnection:
         pass
 
     @abstractmethod
@@ -458,7 +459,7 @@ class AptConnection(AbstractAptConnection):
 
     def _rx_dispatcher_internal_loop(self) -> None:
         partial_message: None | AptMessageForStreamParsing = None
-        full_message: Optional[AptMessage] = None
+        full_message: AptMessage | None = None
         message_bytes = self._serial_read_state_aware(6)
         partial_message = AptMessageForStreamParsing.from_bytes(message_bytes)
         message_id = partial_message.message_id
@@ -497,7 +498,7 @@ class AptConnection(AbstractAptConnection):
         read if that is the case.
 
         """
-        output_bytes: bytes = bytes()
+        output_bytes: bytes = b""
         while self._fail_if_closed():
             output_bytes = output_bytes + self._connection.read(size=size)
             if len(output_bytes) == size:

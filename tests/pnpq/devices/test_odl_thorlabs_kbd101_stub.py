@@ -1,4 +1,5 @@
-from typing import Generator, cast
+from collections.abc import Generator
+from typing import cast
 from unittest import mock
 
 import pytest
