@@ -64,8 +64,7 @@ stdmsg "Running ruff check..."
 ruff check .
 
 stdmsg "Building documentation..."
-# TODO reintroduce --fail-on-warning after https://github.com/sphinx-doc/sphinx/issues/14713 is resolved
-sphinx-build -M html sphinx/source/ sphinx/build/ --fresh-env --write-all
+sphinx-build -M html sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all
 
 stdmsg "Validating the CFF file..."
 cffconvert --validate
