@@ -89,9 +89,7 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
         # TODO: Check if input is too large or too small for the device
         position_in_steps = position.to("kbd101_position")
 
-        delta_position = cast(
-            Quantity, position_in_steps - self.current_state[self._chan_ident]
-        )
+        delta_position = position_in_steps - self.current_state[self._chan_ident]
 
         sleep_delta_position(
             self.time_scaling_factor,
@@ -99,7 +97,7 @@ class OpticalDelayLineThorlabsKBD101Stub(AbstractOpticalDelayLineThorlabsKBD101)
             delta_position,
         )  # TODO: Should it be maximum_velocity or minimum_velocity? Or something in between?
 
-        self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
+        self.current_state[self._chan_ident] = position_in_steps
 
         self.log.info("[KBD101 Stub] Channel %s move to %s", self._chan_ident, position)
 

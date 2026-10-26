@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import cast
 
 import structlog
 from pint import Quantity
@@ -132,14 +131,12 @@ class PolarizationControllerThorlabsMPC320Stub(
             )
 
         position_in_steps = position.to("mpc320_steps")
-        delta_position = cast(
-            Quantity, position_in_steps - self.current_state[chan_ident]
-        )
+        delta_position = position_in_steps - self.current_state[chan_ident]
         sleep_delta_position(
             self.time_scaling_factor, self.current_params["velocity"], delta_position
         )
 
-        self.current_state[chan_ident] = cast(Quantity, position_in_steps)
+        self.current_state[chan_ident] = position_in_steps
 
         self.log.info(f"[MPC Stub] Channel {chan_ident} move to {position}")
 

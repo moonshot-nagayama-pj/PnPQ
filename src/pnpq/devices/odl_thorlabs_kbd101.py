@@ -380,10 +380,9 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
 
         # If move is completed, check if the position is within 1mm of the target
         assert isinstance(result, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
-        if not (
-            result.position > absolute_distance - 1000
-            and result.position < absolute_distance + 1000
-        ):
+
+        # pylint: disable-next=superfluous-parens
+        if not (absolute_distance - 1000 < result.position < absolute_distance + 1000):
             self.log.error(
                 "Invalid position was matched: %s (expected %s)",
                 result.position,

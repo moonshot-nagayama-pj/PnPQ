@@ -48,9 +48,9 @@ class PolarizationControllerParams(UserDict[str, Quantity]):
             return
 
         if key == "velocity":
-            super().__setitem__(key, cast(Quantity, value.to("mpc320_velocity")))
+            super().__setitem__(key, value.to("mpc320_velocity"))
         elif key in ("home_position", "jog_step_1", "jog_step_2", "jog_step_3"):
-            super().__setitem__(key, cast(Quantity, value.to("mpc320_step")))
+            super().__setitem__(key, value.to("mpc320_step"))
         else:
             raise ValueError(f"Invalid key '{key}'.")
 

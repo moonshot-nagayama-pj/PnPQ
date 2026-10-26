@@ -422,6 +422,13 @@ class AptMessageHeaderOnly(AptMessage):
     def destination_serialization(self) -> int:
         return self.destination
 
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        raise NotImplementedError()
+
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessageHeaderOnlyNoParams(AptMessageHeaderOnly):
@@ -460,6 +467,13 @@ class AptMessageWithData(AptMessage):
     @property
     def destination_serialization(self) -> int:
         return self.destination | 0x80
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        raise NotImplementedError()
+
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -1373,6 +1387,9 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
             f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
         )
 
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
@@ -1522,6 +1539,9 @@ class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessage):
         raise ValueError(
             f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
         )
+
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
 
 
 @dataclass(frozen=True, kw_only=True)

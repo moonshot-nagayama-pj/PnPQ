@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import cast
 
 import structlog
 from pint import Quantity
@@ -67,16 +66,15 @@ class WaveplateThorlabsK10CR1Stub(AbstractWaveplateThorlabsK10CR1):
         # TODO: Check if input is too large or too small for the device
         position_in_steps = position.to("k10cr1_step")
 
-        delta_position = cast(
-            Quantity, position_in_steps - self.current_state[self._chan_ident]
-        )
+        delta_position = position_in_steps - self.current_state[self._chan_ident]
+
         sleep_delta_position(
             self.time_scaling_factor,
             self.get_velparams()["maximum_velocity"],
             delta_position,
         )  # NOTE: Should it be maximum_velocity or minimum_velocity? Or something in between?
 
-        self.current_state[self._chan_ident] = cast(Quantity, position_in_steps)
+        self.current_state[self._chan_ident] = position_in_steps
 
         self.log.info(
             "[Waveplate Stub] Channel %s move to %s", self._chan_ident, position

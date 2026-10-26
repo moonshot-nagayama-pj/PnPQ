@@ -11,7 +11,7 @@ thorlabs_context = pint.Context("thorlabs_context")
 
 
 def get_unit_transformation(
-    input_to_output: Callable[[float], float],
+    input_to_output: Callable[[Quantity[Any]], Quantity[Any]],
     input_unit: pint.Unit,
     output_unit: pint.Unit,
     output_range: None | tuple[float, float] = None,
@@ -23,7 +23,7 @@ def get_unit_transformation(
         value: PlainQuantity[Quantity],
         **kwargs: Any,  # pylint: disable=unused-argument
     ) -> PlainQuantity[Any]:
-        output: float = input_to_output(value.to(input_unit).magnitude)
+        output = input_to_output(value.to(input_unit).magnitude)
 
         converted_quantity = Quantity(
             round(output) if output_rounded else output,
