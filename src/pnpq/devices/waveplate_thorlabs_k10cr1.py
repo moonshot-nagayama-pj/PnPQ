@@ -57,9 +57,9 @@ class WaveplateVelocityParams(UserDict[str, Quantity]):
             return
 
         if key in ("minimum_velocity", "maximum_velocity"):
-            super().__setitem__(key, cast(Quantity, value.to("k10cr1_velocity")))
+            super().__setitem__(key, value.to("k10cr1_velocity"))
         elif key == "acceleration":
-            super().__setitem__(key, cast(Quantity, value.to("k10cr1_acceleration")))
+            super().__setitem__(key, value.to("k10cr1_acceleration"))
         else:
             raise ValueError(f"Invalid key '{key}'.")
 
@@ -104,9 +104,7 @@ class WaveplateHomeParams(UserDict[str, Any]):
         if value is None:
             return
 
-        if key == "home_direction":
-            super().__setitem__(key, value)
-        elif key == "limit_switch":
+        if key in ("home_direction", "limit_switch"):
             super().__setitem__(key, value)
         elif key == "home_velocity":
             super().__setitem__(key, cast(Quantity, value.to("k10cr1_velocity")))
@@ -346,14 +344,13 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                (
-                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
-                    and message.chan_ident == self._chan_ident
-                    and message.position > absolute_distance_lower_bound
-                    and message.position < absolute_distance_upper_bound
-                    and message.destination == Address.HOST_CONTROLLER
-                    and message.source == Address.GENERIC_USB
-                )
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                and message.chan_ident == self._chan_ident
+                and absolute_distance_lower_bound
+                < message.position
+                < absolute_distance_upper_bound
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
             ),
         )
 
@@ -580,12 +577,10 @@ class WaveplateThorlabsK10CR1(AbstractWaveplateThorlabsK10CR1):
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                (
-                    isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
-                    and message.chan_ident == self._chan_ident
-                    and message.destination == Address.HOST_CONTROLLER
-                    and message.source == Address.GENERIC_USB
-                )
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
+                and message.chan_ident == self._chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
             ),
         )
         self.set_channel_enabled(False)

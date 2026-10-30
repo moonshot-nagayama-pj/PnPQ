@@ -321,7 +321,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 "move_absolute command failed",
                 error="Move stopped before completion",
             )
-            raise RuntimeError("Move stopped before completion")
+            raise RuntimeError("Move stopped before completion")  # noqa: TRY004
 
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("home command finished", elapsed_time=elapsed_time)
@@ -376,14 +376,13 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 "move_absolute command failed",
                 error="Move stopped before completion",
             )
-            raise RuntimeError("Move stopped before completion")
+            raise RuntimeError("Move stopped before completion")  # noqa: TRY004
 
         # If move is completed, check if the position is within 1mm of the target
         assert isinstance(result, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
-        if not (
-            result.position > absolute_distance - 1000
-            and result.position < absolute_distance + 1000
-        ):
+
+        # pylint: disable-next=superfluous-parens
+        if not (absolute_distance - 1000 < result.position < absolute_distance + 1000):
             self.log.error(
                 "Invalid position was matched: %s (expected %s)",
                 result.position,
@@ -428,7 +427,7 @@ class OpticalDelayLineThorlabsKBD101(AbstractOpticalDelayLineThorlabsKBD101):
                 "move_absolute command failed",
                 error="Move stopped before completion",
             )
-            raise RuntimeError("Move stopped before completion")
+            raise RuntimeError("Move stopped before completion")  # noqa: TRY004
 
     def get_velparams(self) -> OpticalDelayLineVelocityParams:
 

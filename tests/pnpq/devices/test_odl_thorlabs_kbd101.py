@@ -1,4 +1,4 @@
-from typing import Callable, Generator
+from collections.abc import Callable, Generator
 from unittest.mock import Mock, create_autospec
 
 import pytest
@@ -42,7 +42,7 @@ from pnpq.units import pnpq_ureg
 
 
 @pytest.fixture(name="mock_connection", scope="function")
-def mock_connection_fixture() -> Generator[Mock, None, None]:
+def mock_connection_fixture() -> Generator[Mock]:
     connection = create_autospec(AptConnection)
     assert isinstance(connection, Mock)
     yield connection

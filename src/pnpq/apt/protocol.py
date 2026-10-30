@@ -125,7 +125,7 @@ class ChanIdent(IntFlag, boundary=STRICT):
     CHANNEL_4 = 0x08
 
     @classmethod
-    def from_linear(cls, linear: int) -> "ChanIdent":
+    def from_linear(cls, linear: int) -> ChanIdent:
         if linear < 1 or linear > 4:
             raise ValueError("Channel identifier must be between 1 and 4.")
         return cls(1 << (linear - 1))
@@ -142,7 +142,7 @@ class EnableState(int, Enum):
         return self.value == 0x01
 
     @classmethod
-    def from_bool(cls, toggle: bool) -> "EnableState":
+    def from_bool(cls, toggle: bool) -> EnableState:
         if toggle:
             return cls.CHANNEL_ENABLED
         return cls.CHANNEL_DISABLED
@@ -422,6 +422,13 @@ class AptMessageHeaderOnly(AptMessage):
     def destination_serialization(self) -> int:
         return self.destination
 
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        raise NotImplementedError()
+
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessageHeaderOnlyNoParams(AptMessageHeaderOnly):
@@ -460,6 +467,13 @@ class AptMessageWithData(AptMessage):
     @property
     def destination_serialization(self) -> int:
         return self.destination | 0x80
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        raise NotImplementedError()
+
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -965,7 +979,7 @@ class AptMessage_MGMSG_HW_GET_INFO(AptMessageWithData):
     serial_number: int
 
     @classmethod
-    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_HW_GET_INFO":
+    def from_bytes(cls, raw: bytes) -> AptMessage_MGMSG_HW_GET_INFO:
         (
             message_id,
             data_length,
@@ -1114,7 +1128,7 @@ class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessage):
     data_length: ClassVar[int]
 
     @classmethod
-    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_GET_STATUSUPDATE":
+    def from_bytes(cls, raw: bytes) -> AptMessage_MGMSG_MOT_GET_STATUSUPDATE:
         data_length = len(raw)
         if data_length == 20:
             return AptMessage_MGMSG_MOT_GET_STATUSUPDATE_20_BYTES.from_bytes(raw)
@@ -1311,7 +1325,7 @@ class AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(AptMessageWithData):
     absolute_distance: int
 
     @classmethod
-    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_ABSOLUTE":
+    def from_bytes(cls, raw: bytes) -> AptMessage_MGMSG_MOT_MOVE_ABSOLUTE:
         (
             message_id,
             data_length,
@@ -1363,7 +1377,7 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
     data_length: ClassVar[int]
 
     @classmethod
-    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_COMPLETED":
+    def from_bytes(cls, raw: bytes) -> AptMessage_MGMSG_MOT_MOVE_COMPLETED:
         length = len(raw)
         if length == 6:
             return AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES.from_bytes(raw)
@@ -1372,6 +1386,9 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
         raise ValueError(
             f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
         )
+
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -1444,7 +1461,7 @@ class AptMessage_MGMSG_MOT_MOVE_STOP(AptMessageHeaderOnly):
     stop_mode: StopMode
 
     @classmethod
-    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_STOP":
+    def from_bytes(cls, raw: bytes) -> AptMessage_MGMSG_MOT_MOVE_STOP:
         message_id, chan_ident, stop_mode, destination, source = (
             cls.message_struct.unpack(raw)
         )
@@ -1477,7 +1494,7 @@ class AptMessage_MGMSG_MOT_MOVE_JOG(AptMessageHeaderOnly):
     jog_direction: JogDirection
 
     @classmethod
-    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_JOG":
+    def from_bytes(cls, raw: bytes) -> AptMessage_MGMSG_MOT_MOVE_JOG:
         message_id, chan_ident, jog_direction, destination, source = (
             cls.message_struct.unpack(raw)
         )
@@ -1513,7 +1530,7 @@ class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessage):
     data_length: ClassVar[int]
 
     @classmethod
-    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_STOPPED":
+    def from_bytes(cls, raw: bytes) -> AptMessage_MGMSG_MOT_MOVE_STOPPED:
         length = len(raw)
         if length == 6:
             return AptMessage_MGMSG_MOT_MOVE_STOPPED_6_BYTES.from_bytes(raw)
@@ -1522,6 +1539,9 @@ class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessage):
         raise ValueError(
             f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
         )
+
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -1573,7 +1593,7 @@ class AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(AptMessageWithData):
     message_id_to_save: AptMessageId
 
     @classmethod
-    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_SET_EEPROMPARAMS":
+    def from_bytes(cls, raw: bytes) -> AptMessage_MGMSG_MOT_SET_EEPROMPARAMS:
         (
             message_id,
             data_length,
