@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# Usage: release.bash [next-version]
-# If a version number is not provided, the next version will be a patch version increment.
+# Usage: release.bash [release-version]
+# If a version number is not provided, it will use the current version
+# in pyproject.toml and remove the `.dev0` suffix.
 
 set -o errexit
 set -o nounset
@@ -59,37 +60,25 @@ fi
 
 stdmsg "Parsing current version and get next version..."
 
-# Get current version
-uv_version_str=$(uv version)
-current_version=$(stdmsg "${uv_version_str}" | awk '{print $2}')
+# If an argument is passed, use it instead of the version in pyproject.toml.
+if [[ -n ${1-} ]]; then
+  updated_version="$1"
+else
+  # Get current version
+  uv_version_str=$(uv version)
+  current_version=$(stdmsg "${uv_version_str}" | awk '{print $2}')
 
-# Remove `.dev0` from the version
-updated_version=${current_version%.dev0}
+  # Remove `.dev0` from the version
+  updated_version=${current_version%.dev0}
+fi
+
+stdmsg "Version number of release: ${updated_version}"
 
 # Check format of updated_version
 if [[ ! ${updated_version} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  errmsg "Error: Current version '${updated_version}' is not in the correct format (A.B.C). Please update the version in pyproject.toml."
+  errmsg "Error: Current version '${updated_version}' is not in the correct format (A.B.C)."
   exit 1
 fi
-
-# Parse optional next version argument
-new_version=""
-
-# If an argument is passed, validate it
-if [[ -n ${1-} ]]; then
-  if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    new_version="$1"
-  else
-    errmsg "Error: Invalid next version format. Use A.B.C (e.g., 1.2.3)"
-    exit 1
-  fi
-else
-  # No argument provided, increment patch version
-  IFS='.' read -r major minor patch <<<"${updated_version}"
-  new_version="${major}.${minor}.$((patch + 1))"
-fi
-
-stdmsg "Next version will be: ${new_version}"
 
 # Run the checks script
 stdmsg "Run checks before starting the release process..."
@@ -97,7 +86,7 @@ stdmsg "Run checks before starting the release process..."
 
 stdmsg "Starting release process..."
 
-stdmsg "Removing '.dev0' from version in pyproject.toml..."
+stdmsg "Write release version into pyproject.toml..."
 uv version "${updated_version}"
 
 stdmsg "Updating smv_latest_version in the Sphinx config..."
@@ -120,6 +109,11 @@ git push origin "${branch_name}"
 stdmsg "Creating tag 'v${updated_version}'..."
 git tag -am "Release version: ${updated_version}" "v${updated_version}"
 git push origin "v${updated_version}"
+
+# Increment patch version
+IFS='.' read -r major minor patch <<<"${updated_version}"
+new_version="${major}.${minor}.$((patch + 1))"
+stdmsg "Next version will be: ${new_version}"
 
 # Update the version to the new version (e.g. <version>.dev)
 stdmsg "Starting next version: ${new_version}"
